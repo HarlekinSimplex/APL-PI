@@ -20,12 +20,10 @@ libi2c-com.o: libi2c-com.c
 	$(CC) $(CFLAGS) libi2c-com.c -o libi2c-com.o
     
 install:
-	install -m 0644 libi2c-com.so $(prefix)
-	ln -s 
-
+	install -m 0644 $(LIBRARY).$(VERSION) $(prefix)
 
 uninstall:
-	rm $(prefix)/libi2c-com.so
+	rm $(prefix)/$(LIBRARY).$(VERSION)
 
 deb: all
 	mkdir -p package/usr/lib

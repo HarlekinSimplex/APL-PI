@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
 #include <linux/i2c.h>
+#include <linux/i2c-dev.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -29,7 +29,7 @@ int CloseI2C(int *err)
         *err = errno;
         return -1;
     }
-	
+
     return 0;
 }
 
@@ -40,19 +40,19 @@ int WriteBytes(int address, unsigned char bytes[], int *err)
 
     messages[0].addr  = address;
     messages[0].flags = 0;
-    messages[0].len   = sizeof(unsigned char) * bytes[0];  // bytes is a counted array
-    messages[0].buf   = bytes + 1;                         // ignore the first element
+    messages[0].len   = sizeof(unsigned char) * bytes[0] ;  // bytes is a counted array
+    messages[0].buf   = (unsigned char *)bytes + 1;         // ignore the first element
 
     ioctl_arg.msgs  = messages;
     ioctl_arg.nmsgs = 1;
-	
+
     if(ioctl(fd, I2C_RDWR, &ioctl_arg) < 0)
     {
         *err = errno;
         return -1;
     }
 
-    return 0;	
+    return 0;
 }
 
 int ReadBytes(int address, unsigned char bytes[], int *err)
@@ -63,11 +63,11 @@ int ReadBytes(int address, unsigned char bytes[], int *err)
     messages[0].addr  = address;
     messages[0].flags = I2C_M_RD;
     messages[0].len   = sizeof(unsigned char) * bytes[0];  // bytes is a counted array
-    messages[0].buf   = bytes;                             // include first element as we're receiving data
+    messages[0].buf   = (unsigned char *)bytes;            // include first element as we're receiving data
 
     ioctl_arg.msgs    = messages;
     ioctl_arg.nmsgs   = 1;
-	
+
     if(ioctl(fd, I2C_RDWR, &ioctl_arg) < 0)
     {
         *err = errno;
@@ -75,5 +75,28 @@ int ReadBytes(int address, unsigned char bytes[], int *err)
     }
 
     return 0;
+}
+
+int APLTestWrite(unsigned char *bytes)
+{
+
+    return sizeof(unsigned char) * bytes[0] ;
+}
+
+int APLTestRead(unsigned char *bytes)
+{
+    // unsigned short len = sizeof(unsigned char) * bytes[0] ;
+    unsigned short len = 10 ;
+    unsigned short i = len ;
+
+    bytes[0] = len ;
+
+    while(i>0)
+    {
+        bytes[ 1 + len-i] = (unsigned char)( 65 + len - i) ;
+        i-- ;
+    }
+
+    return len ;
 }
 
