@@ -8,6 +8,12 @@
 
 static int fd = -1;
 
+/* Dyalog APL name associations
+
+    'Open' ⎕NA'I libi2c-com.so|OpenI2C I I =I'  ⍝ bus, extra_open_flags, err
+    'Close'⎕NA'I libi2c-com.so|CloseI2C =I'     ⍝ err
+*/
+
 int OpenI2C(int bus, int extra_open_flags, int *err)
 {
     char fName[16];
@@ -33,7 +39,17 @@ int CloseI2C(int *err)
     return 0;
 }
 
-int WriteBytes(int address, unsigned char bytes[], int *err)
+/* Dyalog APL name associations
+
+    'WriteBytes'⎕NA'I libi2c-com.so|WriteBytes I <#U1      =I' ⍝ address, bytes[], err
+    'ReadBytes' ⎕NA'I libi2c-com.so|ReadBytes  I >#U1[255] =I' ⍝ address, bytes[], err
+    'WriteChar' ⎕NA'I libi2c-com.so|WriteBytes I <#C       =I' ⍝ address, bytes[], err
+    'ReadChar'  ⎕NA'I libi2c-com.so|ReadBytes  I >#C[255]  =I' ⍝ address, bytes[], err
+    'WriteArray'⎕NA'I libi2c-com.so|WriteBytes I <U1       =I' ⍝ address, bytes[], err
+    'ReadArray' ⎕NA'I libi2c-com.so|ReadBytes  I >U1[255]  =I' ⍝ address, bytes[], err
+*/
+
+int WriteBytes(int address, unsigned char *bytes, int *err)
 {
     struct i2c_rdwr_ioctl_data ioctl_arg;
     struct i2c_msg messages[1];
@@ -55,7 +71,7 @@ int WriteBytes(int address, unsigned char bytes[], int *err)
     return 0;
 }
 
-int ReadBytes(int address, unsigned char bytes[], int *err)
+int ReadBytes(int address, unsigned char *bytes, int *err)
 {
     struct i2c_rdwr_ioctl_data ioctl_arg;
     struct i2c_msg messages[1];
@@ -77,26 +93,46 @@ int ReadBytes(int address, unsigned char bytes[], int *err)
     return 0;
 }
 
+/* Dyalog APL name associations
+
+    'APLTestWriteChar' ⎕NA'I libi2c-com.so|APLTestWrite <#C'  
+    'APLTestWriteBytes'⎕NA'I libi2c-com.so|APLTestWrite <#U1'
+⍝    'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  >#C'     
+⍝    'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  >#U1'
+    'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  >#C[10]'     
+    'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  >#U1[10]'
+*/
+
 int APLTestWrite(unsigned char *bytes)
 {
-
     return sizeof(unsigned char) * bytes[0] ;
 }
 
 int APLTestRead(unsigned char *bytes)
 {
-    // unsigned short len = sizeof(unsigned char) * bytes[0] ;
-    unsigned short len = 10 ;
-    unsigned short i = len ;
+    unsigned short len, len_given, i ;
 
+    // This does not work as it should
+    len_given = sizeof(unsigned char) * bytes[0] ;
+
+    // Set result array length to 10
+    len = 10 ;
+
+    // This requires to call this function with at least 10 bytes als buffer size
+    //   APLTestReadChar 10
+    // or it needs to be declared like this:
+    //  'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  >#C[10]'     
+    //  'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  >#U1[10]'
+    //
     bytes[0] = len ;
 
+    // Do some dummy reading of 10 bytes
+    i = len ;
     while(i>0)
     {
         bytes[ 1 + len-i] = (unsigned char)( 65 + len - i) ;
         i-- ;
     }
 
-    return len ;
+    return len_given ;
 }
-
