@@ -57,4 +57,28 @@
                 ⍝ Unload I2C library
                 #.I2C.UnInit
 	∇
+
+        ∇ ret←test
+               ret←0
+
+               I2C_DEVICE ←(2×16)+1  ⍝ 0x21
+               IODIRA     ←(0×16)+0  ⍝ 0x00
+               IODIRB     ←(0×16)+1  ⍝ 0x01
+               GPIOA      ←(1×16)+2  ⍝ 0x12
+               GPIOB      ←(1×16)+3  ⍝ 0x13
+               OLATA      ←(1×16)+4  ⍝ 0x14
+               OLATB      ←(1×16)+5  ⍝ 0x15
+
+               #.I2C.Init 0
+               #.I2C.Open I2C_BUS 0 0
+               #.I2C.WriteBytes I2C_DEVICE (,IODIRA 0) (,0)
+               #.I2C.WriteBytes I2C_DEVICE (,GPIOA 85) (,0)
+               #.I2C.WriteBytes I2C_DEVICE (,IODIRB 0) (,0)
+               #.I2C.WriteBytes I2C_DEVICE (,GPIOB 170) (,0)
+               ⎕←'Start Read'
+               #.I2C.ReadBytes I2C_DEVICE (OLATA) (,0)
+               #.I2C.ReadBytes I2C_DEVICE (OLATB) (,0)
+               #.I2C.Close 0
+               #.I2C.UnInit 0               
+        ∇
 :EndNamespace
