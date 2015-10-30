@@ -2,7 +2,7 @@
     ⍝ Converted from the quick2wire-python-api
     ⍝ For more information see https://github.com/quick2wire/quick2wire-python-api
 
-    ReadBufferSize←255
+    I2C_READ_BUFFER_SIZE←255
 
     ∇ r←Init dummy
       'Open'⎕NA'I libi2c-com.so|OpenI2C I I =I'                 ⍝ bus, extra_open_flags, err
@@ -16,24 +16,22 @@
       '__ReadChar'  ⎕NA'I libi2c-com.so|ReadBytes  I =#C =I'    ⍝ address, output_buffer[], err
 ⍝      '__ReadArray' ⎕NA'I libi2c-com.so|ReadBytes  I =U1[] =I'  ⍝ address, output_buffer[], err
 
-      'APLTestWriteChar' ⎕NA'I libi2c-com.so|APLTestWrite <#C'  
-      'APLTestWriteBytes'⎕NA'I libi2c-com.so|APLTestWrite <#U1'
-      'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  =#C'     
-      'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  =#U1'
+
+
 
       r←0
     ∇
 
-    ∇ r←ReadBytes (Address ErrorCode)
-       r←__ReadBytes Address ⊂#.I2C.ReadBufferSize⍴0 ErrorCode   ⍝ Default would be a byte counted array of 255 zeros
+    ∇ r←ReadBytes (I2CAddress ErrorCode)
+       r←__ReadChar I2CAddress I2CReadBufferSize⍴0 ErrorCode   ⍝ Default would be a byte counted array of 255 zeros
     ∇
 
-    ∇ r←ReadChar (Address ErrorCode)
-        r←__ReadChar Address ⊂#.I2C.ReadBufferSize⍴0 ErrorCode  ⍝ same as with bytes
+    ∇ r←ReadChar (I2CAddress ErrorCode)
+        r←__ReadChar I2CAddress I2CReadBufferSize⍴0 ErrorCode  ⍝ same as with bytes
     ∇
 
-⍝    ∇ r←ReadBytes (Address ErrorCode)
-⍝        r←__ReadArray Address ????? ErrorCode                  ⍝ No clue what this may be
+⍝    ∇ r←ReadBytes (I2CAddress, ErrorCode)
+⍝        r←__ReadArray I2CAddress ????? ErrorCode                  ⍝ No clue what this may be
 ⍝    ∇
  
     ∇ r←UnInit dummy;fns

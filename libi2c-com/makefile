@@ -4,6 +4,8 @@ LDFLAGS=-shared
 LIBRARY=libi2c-com.so
 VERSION=$(shell ./scripts/get_version)
 prefix=/usr/lib
+DYALOG=/opt/mdyalog/14.1/32/unicode
+
 ifndef _COMMVERSION
 	_COMMVERSION:= $(shell git rev-list HEAD --count)
 	export _COMMVERSION
@@ -21,9 +23,11 @@ libi2c-com.o: libi2c-com.c
     
 install:
 	install -m 0644 $(LIBRARY).$(VERSION) $(prefix)
+	ln -s $(prefix)/$(LIBRARY).$(VERSION) $(DYALOG)/lib/$(LIBRARY)
 
 uninstall:
 	rm $(prefix)/$(LIBRARY).$(VERSION)
+	rm $(DYALOG)/lib/$(LIBRARY)
 
 deb: all
 	mkdir -p package/usr/lib

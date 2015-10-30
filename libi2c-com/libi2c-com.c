@@ -95,12 +95,10 @@ int ReadBytes(int address, unsigned char *bytes, int *err)
 
 /* Dyalog APL name associations
 
-    'APLTestWriteChar' ⎕NA'I libi2c-com.so|APLTestWrite <#C'  
-    'APLTestWriteBytes'⎕NA'I libi2c-com.so|APLTestWrite <#U1'
-⍝    'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  >#C'     
-⍝    'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  >#U1'
-    'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  >#C[10]'     
-    'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  >#U1[10]'
+      'APLTestWriteChar' ⎕NA'I libi2c-com.so|APLTestWrite <#C'
+      'APLTestWriteBytes'⎕NA'I libi2c-com.so|APLTestWrite <#U1'
+      'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  =#C'
+      'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  =#U1'
 */
 
 int APLTestWrite(unsigned char *bytes)
@@ -116,12 +114,13 @@ int APLTestRead(unsigned char *bytes)
     len_given = sizeof(unsigned char) * bytes[0] ;
 
     // Set result array length to 10
-    len = 10 ;
+//    len = 10 ;
+    len = len_given ;
 
     // This requires to call this function with at least 10 bytes als buffer size
     //   APLTestReadChar 10
     // or it needs to be declared like this:
-    //  'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  >#C[10]'     
+    //  'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  >#C[10]'
     //  'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  >#U1[10]'
     //
     bytes[0] = len ;
