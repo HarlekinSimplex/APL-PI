@@ -9,11 +9,11 @@
       'Close'⎕NA'I libi2c-com.so|CloseI2C =I'                   ⍝ err
 
       'WriteBytes'⎕NA'I libi2c-com.so|WriteBytes I <#U1[] =I'   ⍝ address, input_bytes[], err
-      'WriteChar'⎕NA'I libi2c-com.so|WriteBytes I <#C =I'       ⍝ address, input_bytes[], err
-      'WriteArray'⎕NA'I libi2c-com.so|WriteBytes I <U1[] =I'    ⍝ address, input_bytes[], err
+      'WriteChar'⎕NA'I libi2c-com.so|WriteBytes  I <#C    =I'   ⍝ address, input_bytes[], err
+⍝      'WriteArray'⎕NA'I libi2c-com.so|WriteBytes I <U1[]  =I'   ⍝ address, input_bytes[], err
 
-      '__ReadBytes' ⎕NA'I libi2c-com.so|ReadBytes  I =#U1 =I'   ⍝ address, output_buffer[], err
-      '__ReadChar'  ⎕NA'I libi2c-com.so|ReadBytes  I =#C =I'    ⍝ address, output_buffer[], err
+      'ReadBytes' ⎕NA'I libi2c-com.so|ReadBytes  I =#U1  =I'  ⍝ address, output_buffer[], err
+      'ReadChar'  ⎕NA'I libi2c-com.so|ReadBytes  I =#C   =I'  ⍝ address, output_buffer[], err
 ⍝      '__ReadArray' ⎕NA'I libi2c-com.so|ReadBytes  I =U1[] =I'  ⍝ address, output_buffer[], err
 
       'APLTestWriteChar' ⎕NA'I libi2c-com.so|APLTestWrite <#C'  
@@ -24,16 +24,16 @@
       r←0
     ∇
 
-    ∇ r←ReadBytes (Address ErrorCode)
-       r←__ReadBytes Address ⊂#.I2C.ReadBufferSize⍴0 ErrorCode   ⍝ Default would be a byte counted array of 255 zeros
-    ∇
-
-    ∇ r←ReadChar (Address ErrorCode)
-        r←__ReadChar Address ⊂#.I2C.ReadBufferSize⍴0 ErrorCode  ⍝ same as with bytes
-    ∇
-
 ⍝    ∇ r←ReadBytes (Address ErrorCode)
-⍝        r←__ReadArray Address ????? ErrorCode                  ⍝ No clue what this may be
+⍝       r←__ReadBytes Address (ReadBufferSize⍴0) ErrorCode   ⍝ Default would be a byte counted array of 255 zeros
+⍝    ∇
+
+⍝    ∇ r←ReadChar (Address ErrorCode)
+⍝        r←__ReadChar Address (ReadBufferSize⍴'') ErrorCode  ⍝ same as with bytes
+⍝    ∇
+
+⍝    ∇ r←ReadArray (Address ErrorCode)
+⍝        r←__ReadArray Address ????? ⊂ErrorCode            ⍝ No clue what this may be
 ⍝    ∇
  
     ∇ r←UnInit dummy;fns

@@ -41,12 +41,12 @@ int CloseI2C(int *err)
 
 /* Dyalog APL name associations
 
-    'WriteBytes'⎕NA'I libi2c-com.so|WriteBytes I <#U1      =I' ⍝ address, bytes[], err
-    'ReadBytes' ⎕NA'I libi2c-com.so|ReadBytes  I >#U1[255] =I' ⍝ address, bytes[], err
-    'WriteChar' ⎕NA'I libi2c-com.so|WriteBytes I <#C       =I' ⍝ address, bytes[], err
-    'ReadChar'  ⎕NA'I libi2c-com.so|ReadBytes  I >#C[255]  =I' ⍝ address, bytes[], err
-    'WriteArray'⎕NA'I libi2c-com.so|WriteBytes I <U1       =I' ⍝ address, bytes[], err
-    'ReadArray' ⎕NA'I libi2c-com.so|ReadBytes  I >U1[255]  =I' ⍝ address, bytes[], err
+    'WriteBytes'⎕NA'I libi2c-com.so|WriteBytes I <#U1 =I' ⍝ address, bytes[], err
+    'ReadBytes' ⎕NA'I libi2c-com.so|ReadBytes  I =#U1 =I' ⍝ address, bytes[], err
+    'WriteChar' ⎕NA'I libi2c-com.so|WriteBytes I <#C  =I' ⍝ address, bytes[], err
+    'ReadChar'  ⎕NA'I libi2c-com.so|ReadBytes  I =#C  =I' ⍝ address, bytes[], err
+⍝    'WriteArray'⎕NA'I libi2c-com.so|WriteBytes I <U1  =I' ⍝ address, bytes[], err
+⍝    'ReadArray' ⎕NA'I libi2c-com.so|ReadBytes  I =U1  =I' ⍝ address, bytes[], err
 */
 
 int WriteBytes(int address, unsigned char *bytes, int *err)
@@ -110,7 +110,7 @@ int APLTestRead(unsigned char *bytes)
 {
     unsigned short len, len_given, i ;
 
-    // This does not work as it should
+    // This does not work as it should when used with > as ⎕NA declaration
     len_given = sizeof(unsigned char) * bytes[0] ;
 
     // Set result array length to 10
