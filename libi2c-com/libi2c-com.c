@@ -79,7 +79,7 @@ int ReadBytes(int address, unsigned char *bytes, int *err)
     messages[0].addr  = address;
     messages[0].flags = I2C_M_RD;
     messages[0].len   = sizeof(unsigned char) * bytes[0];  // bytes is a counted array
-    messages[0].buf   = (unsigned char *)bytes;            // include first element as we're receiving data
+    messages[0].buf   = (unsigned char *)bytes + 1;        // ignore the first element
 
     ioctl_arg.msgs    = messages;
     ioctl_arg.nmsgs   = 1;
