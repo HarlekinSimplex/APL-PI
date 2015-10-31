@@ -1,6 +1,4 @@
 :Namespace I2CTests
-	⍝ Converted from the quick2wire-python-api
-	⍝ For more information see https://github.com/quick2wire/quick2wire-python-api
 	
 	⍝ Dependencies
 	⍝∇:require = '/home/pi/github/APL-PI/I2C/I2C.dyalog'
@@ -18,12 +16,24 @@
 	∇ ret←GPIORegisterReadWriteTest i;ret;funret;funout;funerr;msg
 		ret←0
 		
-		funret funout funerr ← #.I2C.ReadBytes I2C_DEVICE (GPIOB) 0
+                ⍝ Read current value of GPIOB
+                ⍝ Set ReadPointer to GPIOB and read one byte
+                funret funerr ← #.I2C.WriteBytes I2C_DEVICE GPIOB 0
+		funret funout funerr ← #.I2C.ReadBytes I2C_DEVICE 0 0
+
+                ⍝ Log result
 		msg←'Value at GPIORegister is ',(⍕funout),'. Setting it to ',(⍕i),':'
 		
+                ⍝ Write new value to GPIOB
 		funret funerr ← #.I2C.WriteBytes I2C_DEVICE (GPIOB i) 0
-		funret funout funerr ← #.I2C.ReadBytes I2C_DEVICE (GPIOB) 0
 
+                ⍝ Read updated value of GPIOB
+                ⍝ Set ReadPointer to GPIOB and read one byte
+                funret funerr ← #.I2C.WriteBytes I2C_DEVICE GPIOB 0
+		funret funout funerr ← #.I2C.ReadBytes I2C_DEVICE 0 0
+
+                ⍝ If read data read matches given value the log 'Success'
+                ⍝ otherwise log 'Failure'
 		:IF funout≡i
 			msg,←' Success'
 		:Else
@@ -31,7 +41,7 @@
 			ret←1
 		:EndIf
 		
-		msg
+		⎕←msg
 	∇
 	
 	∇ ret←GPIORegisterReadWriteTests;ret;funret;funerr
@@ -43,11 +53,17 @@
 			→clean
 		:EndIf
 		
-		funret funerr ← #.I2C.WriteBytes ADDRESS (IODIRB 0) 0
+                ⍝ Set all GPIOB pins as output
+		funret funerr ← #.I2C.WriteBytes I2C_DEVICE (IODIRB 0) 0
+
+                ⍝ Count from 0 to x and set GPIOB pins accordingly 
 		{funret funerr ← GPIORegisterReadWriteTest ⍵ ⋄ ⎕DL 0.1}¨⍳15
-		funret funerr ← #.I2C.WriteBytes ADDRESS (GPIOB 0) 0
+
+                ⍝ Set all GPIOB pins to low
+		funret funerr ← #.I2C.WriteBytes I2C_DEVICE (GPIOB 0) 0
 		
-		clean:         ⍝ Tidy Up
+		clean:         
+                ⍝ Close I2C bus
 		funret funerr ← #.I2C.Close 0
 	∇
 	
@@ -55,13 +71,13 @@
 		ret←0
 		
                 ⍝ Load and assign I2C interface library
-                #.I2C.Init 0  
+                funret ← #.I2C.Init 0  
 
-		⍝	Tests
-		funret←GPIORegisterReadWriteTests
+		⍝ Run Tests
+		funret ← GPIORegisterReadWriteTests
 
                 ⍝ Unload I2C library
-                #.I2C.UnInit
+                funret ← #.I2C.UnInit 0
 	∇
 
         ∇ ret←test ;funret;funout;funerr
@@ -82,9 +98,11 @@
                #.I2C.WriteBytes I2C_DEVICE (IODIRB 0) 0
                #.I2C.WriteBytes I2C_DEVICE (GPIOB 170) 0
                ⎕←'Start Read'
-               #.I2C.ReadBytes I2C_DEVICE (0 0 0 0 0 0) 0
-               #.I2C.ReadBytes I2C_DEVICE (OLATA) 0
-               ⍝ #.I2C.Close 0
-               ⍝ #.I2C.UnInit 0               
+               #.I2C.WriteBytes I2C_DEVICE OLATB 0
+               #.I2C.ReadBytes I2C_DEVICE 0 0
+               #.I2C.WriteBytes I2C_DEVICE OLATA 0
+               #.I2C.ReadBytes I2C_DEVICE 0 0
+               #.I2C.Close 0
+               #.I2C.UnInit 0               
         ∇
 :EndNamespace
