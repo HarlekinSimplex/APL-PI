@@ -1,7 +1,7 @@
 :Namespace I2CTests
 	
 	⍝ Dependencies
-	⍝∇:require = '/home/pi/github/APL-PI/I2C/I2C.dyalog'
+	⍝∇:require =/I2C
 	
 	I2C_BUS←1
         I2C_DEVICE ←(2×16)+1  ⍝ 0x21

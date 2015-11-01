@@ -21,13 +21,13 @@
     ∇ Make args;z
       :Access Public
       :Implements Constructor
-     
+ 
       :If 0=⍴args
-          args←1 32 1 19
+          args←1 33 0 18      ⍝ !!!! Hardware Configuration Parameters
       :EndIf
      
-      (I2C_BUS I2C_ADDRESS IODIR_REGISTER_B GPIO_REGISTER_B)←args
-     
+      (I2C_BUS I2C_ADDRESS IODIR_REGISTER_B GPIO_REGISTER_B)←args     
+
       z←#.I2C.Init ⍬
       z←#.I2C.Open I2C_BUS 0 0
       z←#.I2C.WriteBytes I2C_ADDRESS(IODIR_REGISTER_B 0)0

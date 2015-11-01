@@ -23,7 +23,7 @@
 
     ∇ Demo Delay;i;p;z;bl;reps
     ⍝ Patterns
-      p←⊂'0 4 shift 4/1 0         ⍝ Left Right'
+      p←⊂'0 4 shift 4/1 0          ⍝ Left Right'
       p,←⊂'cycle 4 4/1 0           ⍝ Barber pole'
       p,←⊂'4 cycle 8 repeat head 4 ⍝ Ripple'
       p,←⊂'binary ⍳256             ⍝ Counter'
