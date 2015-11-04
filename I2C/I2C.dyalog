@@ -38,13 +38,13 @@
     ∇ make;r
       :Implements Constructor
       :Access Public
-      ⎕←'Alive'
+      ⎕←'I2C Bus with ID=',⍕BusID,'is now alive.'
       r←AssociateI2CFunctions 0
     ∇
 
     ∇ close;r
       :Implements Destructor
-      ⎕←'Dead'
+      ⎕←'I2C Bus with ID=',⍕BusID,'was closed.'
       r←UnAssociateI2CFunctions 0
     ∇
 
@@ -65,7 +65,7 @@
 
     ∇ r←UnAssociateI2CFunctions dummy;fns
       :If Opened
-	  r←CloseBus
+          r←CloseBus
       :EndIf
       :If 0≠⍴fns←⎕NL ¯3.6
           r←_Close 0
@@ -75,3 +75,4 @@
     ∇
 
 :EndClass
+
