@@ -64,6 +64,9 @@
     ∇
 
     ∇ r←UnAssociateI2CFunctions dummy;fns
+      :If Opened
+	  r←CloseBus
+      :EndIf
       :If 0≠⍴fns←⎕NL ¯3.6
           r←_Close 0
           ⎕EX fns ⍝ Unload the DLL by expunging all
