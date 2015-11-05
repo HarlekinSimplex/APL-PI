@@ -1,5 +1,5 @@
 ﻿:Class MCP23017
-⍝∇:require /home/pi/github/APL-PI/I2C/I2C.dyalog
+⍝∇:require =/../I2C/I2C.dyalog
 
     ⍝ IC2 bus device is attached to
     :Field I2CBus
@@ -18,29 +18,29 @@
     :Field MCP23017_OLATB  ← 21    ⍝ 0x15
 
     ⍝ Constructor methods
-    ∇ make address;r
+    ∇ make1 address;r
       :Implements Constructor
       :Access Public
       I2CBus←⎕NEW ##.I2C
       r←I2CBus.OpenBus 1
       DeviceAddress←address
-      ⎕←'MCP23017 at bus:address ',⍕I2CBus.getBusID,':',⍕DeviceAddress,'is now alive.'
+      ⎕←'MCP23017 at Bus:Address=',(1 0⍕I2CBus.getBusID),':',⍕DeviceAddress,'is now alive.'
     ∇
-⍝    ∇ make(i2cbus address);r
-⍝      :Implements Constructor
-⍝      :Access Public
-⍝      I2CBus←i2cbus
-⍝      r←I2CBus.OpenBus 1
-⍝      DeviceAddress←address
-⍝      ⎕←'MCP23017 at bus:address ',⍕I2CBus.getBusID,':',⍕DeviceAddress,'is now alive.'
-⍝    ∇
+    ∇ make2(i2cbus address);r
+      :Implements Constructor
+      :Access Public
+      I2CBus←i2cbus
+      r←I2CBus.OpenBus 1
+      DeviceAddress←address
+      ⎕←'MCP23017 at Bus:Address=',(1 0⍕I2CBus.getBusID),':',⍕DeviceAddress,'is now alive.'
+    ∇
 
     ⍝ Destructor
     ∇ close;r
       :Implements Destructor
+      ⎕←'MCP23017 at Bus:Address=',(1 0⍕I2CBus.getBusID),':',⍕DeviceAddress,'will be closed.'
       r←I2CBus.CloseBus
       I2CBus←⍬
-      ⎕←'MCP23017 at address ',⍕DeviceAddress,'was closed.'
       r←0
     ∇
 
