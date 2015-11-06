@@ -1,61 +1,15 @@
 ﻿:Class I2C
-⍝ Raspberry I2C bus wrapper
+⍝ Raspberry I2C bus handler wrapper class
+    ⎕IO←⎕ML←1
 
+    ⍝ Member objects
     :Field Opened ← 0 
-    :Field BusID  ← 1
+    :Field BusID  ← 1     ⍝ Default BusID (should be derived from PI version)
 
-    ∇ r←getBusID
-      :Access Public
-      r←BusID
-    ∇
-
-    ∇ r←OpenBus busid
-      :Access Public
-      BusID←1↑,busid
-      Opened←1
-      r←_Open BusID 0 0
-    ∇
-
-    ∇ r←CloseBus
-      :Access Public
-      Opened←0
-      r←_Close 0
-    ∇
-
-    ∇ r←WriteBytes(device buffer)
-      :Access Public
-      r←_WriteBytes(1↑,device)(,buffer)0
-    ∇
-
-    ∇ r←WriteChar(device buffer)
-      :Access Public
-      r←_WriteChar(1↑,device)(,buffer)0
-    ∇
-
-    ∇ r←ReadBytes(device buffer)
-      :Access Public
-      r←_ReadBytes(1↑,device)(,buffer)0
-    ∇
-
-    ∇ r←ReadChar(device buffer)
-      :Access Public
-      r←_ReadChar(1↑,device)(,buffer)0
-    ∇
-
+    ⍝ Construct methods
     ∇ make;r
       :Implements Constructor
       :Access Public
-      r←AssociateI2CFunctions
-      ⎕←'I2C Bus with ID=',⍕BusID,'is now alive.'
-    ∇
-
-    ∇ close;r
-      :Implements Destructor
-      ⎕←'I2C Bus with ID=',⍕BusID,'will be closed.'
-      r←UnAssociateI2CFunctions
-    ∇
-
-    ∇ r←AssociateI2CFunctions
         ⍝ Associate I2C library functions
         ⍝ Bus handling
       '_Open'⎕NA'I libi2c-com.so|OpenI2C I I =I'
@@ -69,13 +23,64 @@
       '_ReadBytes'⎕NA'I libi2c-com.so|ReadBytes I =#U1 =I'
       '_ReadChar'⎕NA'I libi2c-com.so|ReadBytes I =#C =I'
      
+      ⎕←'I2C Bus with ID=',⍕BusID,'is now alive.'
       r←1
     ∇
 
-    ∇ r←UnAssociateI2CFunctions;fns
+    ⍝ Retriev actual I2C bus ID 
+    ∇ r←getBusID
+      :Access Public
+      r←BusID
+    ∇
+
+    ⍝ Open I2C bus  
+    ∇ r←OpenBus
+      :Access Public
+      r←0
+      :If Opened≠1
+          Opened←1
+          r←_Open BusID 0 0
+      :EndIf
+    ∇
+
+    ⍝ Close I2C bus  
+    ∇ r←CloseBus
+      :Access Public
+      r←0
+      :If Opened=1
+          Opened←0
+          r←_Close 0
+      :EndIf
+    ∇
+
+    ⍝ Read / Write data from / to I2C bus
+    ⍝ Wrapper for I2C interface lib calls
+    ∇ r←WriteBytes(device buffer)
+      :Access Public
+      r←_WriteBytes(1↑∊,device)(∊buffer)0
+    ∇
+    ∇ r←WriteChar(device buffer)
+      :Access Public
+      r←_WriteChar(1↑∊,device)(∊buffer)0
+    ∇
+    ∇ r←ReadBytes(device buffer)
+      :Access Public
+      r←_ReadBytes(1↑∊,device)(∊buffer)0
+    ∇
+    ∇ r←ReadChar(device buffer)
+      :Access Public
+      r←_ReadChar(1↑∊,device)(∊buffer)0
+    ∇
+
+    ⍝ Destructor method
+    ∇ close;r
+      :Implements Destructor
+      ⎕←'I2C Bus with ID=',⍕BusID,'will be closed.'
+        ⍝ Close I2C bus
       :If Opened
           r←CloseBus
       :EndIf
+        ⍝ Unload shared I2C interface library
       :If 0≠⍴fns←⎕NL ¯3.6
           r←_Close 0
           ⎕EX fns ⍝ Unload the DLL by expunging all
