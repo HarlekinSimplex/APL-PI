@@ -2,7 +2,7 @@
 ⍝∇:require =/../I2C/I2C.dyalog
     ⎕IO←⎕ML←1
 
-    ⍝ Member objects
+    ⍝ Member obje cts
     ⍝ IC2 bus device is attached to
     :Field I2CBus
 
