@@ -3,10 +3,12 @@
     ⎕IO←⎕ML←1
 
     ⍝ Member objects
+    ⍝
     ⍝ IC2 bus device is attached to
     :Field I2CBus
 
     ⍝ Local variables and constants
+    ⍝
     ⍝ Device address
     DeviceAddress ← 32   ⍝ Default 0x20 (A0/A1/A2 set to low)
     ⍝ MCP23017 Register addresses
@@ -22,9 +24,12 @@
     INPUT  ← 1
     OUTPUT ← 0
 
-    ⍝ Tools
+    ⍝ DFNs
+    ⍝
+    ⍝ Decimal to boolean array
     _bool8  ←{(8⍴2)⊤⍵}   ⍝ Converts a decimal to a binary array of 8 bit
     _bool16 ←{(16⍴2)⊤⍵}  ⍝ Converts a decimal to a binary array of 16 bit
+    ⍝ Boolean array to decimal
     _decimal←{2⊥⍵}       ⍝ Converts a arbitray binary to a decimal
 
     ⍝ Constructor methods
@@ -80,10 +85,10 @@
     ⍝ pin       : index of pin/bit to change (First bit (2*0) is indicated by pin←0)
     ⍝ value     : ←0 Clear bit, ←1 Set bit
     ∇ r←readandchangepin(port pin value);newvalue;funret;funerr
-        ⍝ Read current value from port
+      ⍝ Read current value from port
       funret currvalue funerr←I2CBus.ReadBytes DeviceAddress port 0
-        ⍝ If read was not successful return error information
-        ⍝ otherwise change bit as instructed and return result
+      ⍝ If read was not successful return error information
+      ⍝ otherwise change bit as instructed and return result
       :If funret≠0
           r←funret currvalue funerr
       :Else
@@ -96,9 +101,9 @@
     ⍝ value       : ←0 Clear bit, ←1 Set bit
     ⍝ currvalue   : value to apply change to
     ∇ r←changepin(port pin value currvalue);newvalue
-        ⍝ Change bit
+      ⍝ Change bit
       newvalue←2⊥(changebit(_bool8 currvalue)pin value)
-        ⍝ Write new value to port/register
+      ⍝ Write new value to port/register
       r←I2CBus.WriteBytes DeviceAddress port newvalue
     ∇
 
@@ -107,15 +112,15 @@
     ⍝ Configure GPIOA (8 bit)
     ∇ r←Config8 value
       :Access Public
-        ⍝ Write 8 bit value to IODIRA
+      ⍝ Write 8 bit value to IODIRA
       r←I2CBus.WriteBytes DeviceAddress IODIRA value
     ∇
     ⍝ Configure GPIOA/B (16 bit)
     ∇ r←Config16 value;split
       :Access Public
-        ⍝ Encode value into 2 byte array and change LSB/HSB
+      ⍝ Encode value into 2 byte array and change LSB/HSB
       split←1⌽256 256⊤value
-        ⍝ Write 16 bit value to IODIRA/B
+      ⍝ Write 16 bit value to IODIRA/B
       r←I2CBus.WriteBytes DeviceAddress IODIRA split
     ∇
     ⍝ Configure a pin as Input/Output (single pin operation)
@@ -124,12 +129,12 @@
     ⍝ returnvalue : funret IODIR-Register IODIR-Value I2CErrCode
     ∇ r←Config(pin mode)
       :Access Public
-        ⍝ If pin is > 7 the PortB needs to be configured
+      ⍝ If pin is > 7 the PortB needs to be configured
       :If pin<8
-            ⍝ Configure addressed pin PortA
+          ⍝ Configure addressed pin PortA
           r←readandchangepin IODIRA pin mode
       :Else
-            ⍝ Configure addressed pin of PortB
+          ⍝ Configure addressed pin of PortB
           r←readandchangepin IODIRB(pin-8)mode
       :EndIf
     ∇
@@ -139,15 +144,15 @@
     ⍝ Write 8bit value to GPIOA
     ∇ r←Write8 value
       :Access Public
-        ⍝ Write 8 bit value to GPIOA
+      ⍝ Write 8 bit value to GPIOA
       r←I2CBus.WriteBytes DeviceAddress OLATA value
     ∇
     ⍝ Write 16bit value to GPIOA/B
     ∇ r←Write16 value;split
       :Access Public
-        ⍝ Encode value into 2 byte array and change LSB/HSB
+      ⍝ Encode value into 2 byte array and change LSB/HSB
       split←1⌽256 256⊤value
-        ⍝ Write 16 bit value to GPIOA/B
+      ⍝ Write 16 bit value to GPIOA/B
       r←I2CBus.WriteBytes DeviceAddress OLATA split
     ∇
     ⍝ Output value to a GPIO Pin (single pin operation)
@@ -156,12 +161,12 @@
     ⍝ returnvalue : funret GPIO-Register GPIO-Value I2CErrCode
     ∇ r←Output(pin value)
       :Access Public
-        ⍝ If pin is > 7 PortB needs to be addressed
+      ⍝ If pin is > 7 PortB needs to be addressed
       :If pin<8
-            ⍝ Configure addressed pin PortA
+          ⍝ Configure addressed pin PortA
           r←readandchangepin GPIOA pin value
       :Else
-            ⍝ Configure addressed pin of PortB
+          ⍝ Configure addressed pin of PortB
           r←readandchangepin GPIOB(pin-8)value
       :EndIf
     ∇
@@ -171,38 +176,38 @@
     ⍝ Read 8 bit from latch register OLATA
     ∇ r←ReadU8;funret;funval;funerr
       :Access Public
-        ⍝ Read 8 bit from latch register OLATA
+      ⍝ Read 8 bit from latch register OLATA
       funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA 0
-        ⍝ Return value as read
+      ⍝ Return value as read
       r←funret funval funerr
     ∇
     ⍝ Read 8 bit (singned) from latch register OLATA
     ∇ r←ReadS8;funret;funval;funerr
       :Access Public
-        ⍝ Read 8 bit from latch register OLATA
+      ⍝ Read 8 bit from latch register OLATA
       funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA 0
-        ⍝ Return signed value if value >= 128 (0x80)
+      ⍝ Return signed value if value >= 128 (0x80)
       funval←((funval)(¯128+(funval-128)))[1+funval≥128]
       r←funret funval funerr
     ∇
     ⍝ Read 16 bit from latch register OLATA/OLATB
     ∇ r←ReadU16;funret;funval;funerr
       :Access Public
-        ⍝ Read 16 bit from latch register OLATA/OLATB
+      ⍝ Read 16 bit from latch register OLATA/OLATB
       funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA(0 0)
-        ⍝ Covert 2 byte array to 16 bit value (MSB switched)
+      ⍝ Covert 2 byte array to 16 bit value (MSB switched)
       funval←(256)⊥1⌽funval
-        ⍝ Return value as read
+      ⍝ Return value as read
       r←funret funval funerr
     ∇
     ⍝ Read 16 bit (singned) from latch register OLATA/OLATB
     ∇ r←ReadS16;funret;funval;funerr
       :Access Public
-        ⍝ Read 16 bit from latch register OLATA/OLATB
+      ⍝ Read 16 bit from latch register OLATA/OLATB
       funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA(0 0)
-        ⍝ Covert 2 byte array to 16 bit value (MSB switched)
+      ⍝ Covert 2 byte array to 16 bit value (MSB switched)
       funval←(256)⊥1⌽funval
-        ⍝ Return signed value if value >= 32768 (0x8000)
+      ⍝ Return signed value if value >= 32768 (0x8000)
       funval←((funval)(¯32768+(funval-32768)))[1+funval≥32768]
       r←funret funval funerr
     ∇
@@ -211,23 +216,23 @@
     ⍝ returnvalue : funret GPIO-PinValue I2CErrCode
     ∇ r←Input pin;funret;funval;funerr
       :Access Public
-        ⍝ If pin is > 7 PortB needs to be addressed
+      ⍝ If pin is > 7 PortB needs to be addressed
       :If pin<8
-            ⍝ Read PortA
+          ⍝ Read PortA
           funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA 0
-            ⍝ Boolean endcode read value and select pin
+          ⍝ Boolean endcode read value and select pin
           funval←((8⍴2)⊤funval)[8-pin]
-            ⍝ Build return value
+          ⍝ Build return value
           funval←OLATA funval
       :Else
-            ⍝ Read PortB
+          ⍝ Read PortB
           funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATB 0
-            ⍝ Boolean endcode read value and select pin with HSB correction
+          ⍝ Boolean endcode read value and select pin with HSB correction
           funval←((8⍴2)⊤funval)[16-pin]
-            ⍝ Build return value
+          ⍝ Build return value
           funval←OLATB funval
       :EndIf
-        ⍝ Return result
+      ⍝ Return result
       r←funret funval funerr
     ∇
 
