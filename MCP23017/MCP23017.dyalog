@@ -28,18 +28,19 @@
     _decimal←{2⊥⍵}       ⍝ Converts a arbitray binary to a decimal
 
     ⍝ Constructor methods
+    ⍝
     ⍝ Device is initialized with a default I2C bus instance at address 32 (0x20)
     ∇ make0;r
       :Implements Constructor                                                                                                                                    
       :Access Public                                                                                                                                             
-      I2CBus←⎕NEW ##.I2C
+      I2CBus←⎕NEW #.I2C
       r←initializeI2CBus
     ∇
     ⍝ Device is initialized with a default I2C bus at the given address
     ∇ make1 address;r
       :Implements Constructor
       :Access Public
-      I2CBus←⎕NEW ##.I2C
+      I2CBus←⎕NEW #.I2C
       DeviceAddress←address
       r←initializeI2CBus
     ∇
@@ -58,7 +59,7 @@
     ∇
 
     ⍝ Utility functions
-
+    ⍝
     ⍝ Clear or set given bit in bitmap according value
     ⍝ value←0  Clear bit
     ⍝ value←1  Set bit
@@ -72,6 +73,8 @@
       :EndIf
     ∇
 
+    ⍝ Register pin change methods
+    ⍝
     ⍝ Change pin value of given register/port
     ⍝ port      : address of port/register
     ⍝ pin       : index of pin/bit to change (First bit (2*0) is indicated by pin←0)
@@ -87,7 +90,6 @@
           r←changepin port pin value currvalue
       :EndIf
     ∇
-
     ⍝ Change pin value of given register/port
     ⍝ port        : address of port/register
     ⍝ pin         : index of pin/bit to change (First bit (2*0) is indicated by pin←0)
@@ -100,6 +102,22 @@
       r←I2CBus.WriteBytes DeviceAddress port newvalue
     ∇
 
+    ⍝ GPIO configuration methods
+    ⍝
+    ⍝ Configure GPIOA (8 bit)
+    ∇ r←Config8 value
+      :Access Public
+        ⍝ Write 8 bit value to IODIRA
+      r←I2CBus.WriteBytes DeviceAddress IODIRA value
+    ∇
+    ⍝ Configure GPIOA/B (16 bit)
+    ∇ r←Config16 value;split
+      :Access Public
+        ⍝ Encode value into 2 byte array and change LSB/HSB
+      split←1⌽256 256⊤value
+        ⍝ Write 16 bit value to IODIRA/B
+      r←I2CBus.WriteBytes DeviceAddress IODIRA split
+    ∇
     ⍝ Configure a pin as Input/Output (single pin operation)
     ⍝ pin         : index of pin/bit to change (First bit (2*0) is indicated by pin←0)
     ⍝ mode        : ←0 Configure pin as output, ←1 ..as input
@@ -116,13 +134,29 @@
       :EndIf
     ∇
 
-    ⍝ Output Value to a GPIO Pin (single pin operation)
+    ⍝ GPIO output methods
+    ⍝
+    ⍝ Write 8bit value to GPIOA
+    ∇ r←Write8 value
+      :Access Public
+        ⍝ Write 8 bit value to GPIOA
+      r←I2CBus.WriteBytes DeviceAddress OLATA value
+    ∇
+    ⍝ Write 16bit value to GPIOA/B
+    ∇ r←Write16 value;split
+      :Access Public
+        ⍝ Encode value into 2 byte array and change LSB/HSB
+      split←1⌽256 256⊤value
+        ⍝ Write 16 bit value to GPIOA/B
+      r←I2CBus.WriteBytes DeviceAddress OLATA split
+    ∇
+    ⍝ Output value to a GPIO Pin (single pin operation)
     ⍝ pin         : index of pin/bit to change (First bit (2*0) is indicated by pin←0)
     ⍝ value       : ←0 Set Pin to Low, ←1 ..to High
     ⍝ returnvalue : funret GPIO-Register GPIO-Value I2CErrCode
     ∇ r←Output(pin value)
       :Access Public
-        ⍝ If pin is > 7 the PortB needs to be addressed
+        ⍝ If pin is > 7 PortB needs to be addressed
       :If pin<8
             ⍝ Configure addressed pin PortA
           r←readandchangepin GPIOA pin value
@@ -132,7 +166,8 @@
       :EndIf
     ∇
 
-    ⍝ Read Operations from GPIO ports
+    ⍝ GPIO input methods
+    ⍝
     ⍝ Read 8 bit from latch register OLATA
     ∇ r←ReadU8;funret;funval;funerr
       :Access Public
@@ -150,7 +185,7 @@
       funval←((funval)(¯128+(funval-128)))[1+funval≥128]
       r←funret funval funerr
     ∇
-    ⍝ Read 16 bit from latch register OLATA/OLATN
+    ⍝ Read 16 bit from latch register OLATA/OLATB
     ∇ r←ReadU16;funret;funval;funerr
       :Access Public
         ⍝ Read 16 bit from latch register OLATA/OLATB
@@ -171,6 +206,30 @@
       funval←((funval)(¯32768+(funval-32768)))[1+funval≥32768]
       r←funret funval funerr
     ∇
+    ⍝ Read input value from a GPIO Pin (single pin operation)
+    ⍝ pin         : index of pin/bit to get value for (First bit (2*0) is indicated by pin←0)
+    ⍝ returnvalue : funret GPIO-PinValue I2CErrCode
+    ∇ r←Input pin;funret;funval;funerr
+      :Access Public
+        ⍝ If pin is > 7 PortB needs to be addressed
+      :If pin<8
+            ⍝ Read PortA
+          funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA 0
+            ⍝ Boolean endcode read value and select pin
+          funval←((8⍴2)⊤funval)[8-pin]
+            ⍝ Build return value
+          funval←OLATA funval
+      :Else
+            ⍝ Read PortB
+          funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATB 0
+            ⍝ Boolean endcode read value and select pin with HSB correction
+          funval←((8⍴2)⊤funval)[16-pin]
+            ⍝ Build return value
+          funval←OLATB funval
+      :EndIf
+        ⍝ Return result
+      r←funret funval funerr
+    ∇
 
     ⍝ Debug utility (shall be commented out when not in use)
     ∇ r←debug exp
@@ -187,7 +246,35 @@
       r←0
     ∇
 
+    ⍝ Test class methode 
+    ∇ r←Test;dev
+      :Access Public Shared
+      dev←⍬
+      dev←⎕NEW MCP23017 33
+      {dev.Config ⍵ 0}¨(¯1+⍳16)
+      {dev.Output ⍵ 0}¨(¯1+⍳16)
+      dev.Config8 0
+      dev.Config16 0
+      dev.Write8 255
+      dev.Write16 65535
+      dev.Output 0 0
+      dev.Output 1 0
+      dev.Output 2 0
+      dev.Output 3 0
+      dev.Output 12 0
+      dev.Output 13 0
+      dev.Output 14 0
+      dev.Output 15 0
+      dev.Input 0
+      dev.Input 7
+      dev.Input 8
+      dev.Input 15
+     
+      r←dev
+    ∇
+
 :EndClass
+
 
 ⍝class Adafruit_MCP230XX(object):
 ⍝        # set defaults
@@ -215,60 +302,6 @@
 ⍝
 ⍝        self.outputvalue = self._readandchangepin(MCP23017_IODIRA, pin, value, self.outputvalue)
 ⍝        return self.outputvalue
-⍝
-⍝    def input(self, pin):
-⍝        assert pin >= 0 and pin < self.num_gpios, "Pin number %s is invalid, only 0-%s are valid" % (pin, self.num_gpios)
-⍝        assert self.direction & (1 << pin) != 0, "Pin %s not set to input" % pin
-⍝        if self.num_gpios <= 8:
-⍝            value = self.i2c.readU8(MCP23008_GPIOA)
-⍝        elif self.num_gpios > 8 and self.num_gpios <= 16:
-⍝            value = self.i2c.readU8(MCP23017_GPIOA)
-⍝            value |= self.i2c.readU8(MCP23017_GPIOB) << 8
-⍝        return value & (1 << pin)
-⍝
-⍝
-⍝    def readU16(self):
-⍝        assert self.num_gpios >= 16, "16bits required"
-⍝        lo = self.i2c.readU8(MCP23017_OLATA)
-⍝        hi = self.i2c.readU8(MCP23017_OLATB)
-⍝        return((hi << 8) | lo)
-⍝
-⍝    def readS16(self):
-⍝        assert self.num_gpios >= 16, "16bits required"
-⍝        lo = self.i2c.readU8(MCP23017_OLATA)
-⍝        hi = self.i2c.readU8(MCP23017_OLATB)
-⍝        if (hi > 127): hi -= 256
-⍝        return((hi << 8) | lo)
-⍝
-⍝    def write8(self, value):
-⍝        self.i2c.write8(MCP23008_OLATA, value)
-⍝
-⍝    def write16(self, value):
-⍝        assert self.num_gpios >= 16, "16bits required"
-⍝        self.i2c.write8(MCP23017_OLATA, value & 0xFF)
-⍝        self.i2c.write8(MCP23017_OLATB, (value >> 8) & 0xFF)
-⍝
-⍝# RPi.GPIO compatible interface for MCP23017 and MCP23008
-⍝
-⍝class MCP230XX_GPIO(object):
-⍝    OUT = 0
-⍝    IN = 1
-⍝    BCM = 0
-⍝    BOARD = 0
-⍝    def __init__(self, busnum, address, num_gpios):
-⍝        self.chip = Adafruit_MCP230XX(address, num_gpios, busnum)
-⍝    def setmode(self, mode):
-⍝        # do nothing
-⍝        pass
-⍝    def setup(self, pin, mode):
-⍝        self.chip.config(pin, mode)
-⍝    def input(self, pin):
-⍝        return self.chip.input(pin)
-⍝    def output(self, pin, value):
-⍝        self.chip.output(pin, value)
-⍝    def pullup(self, pin, value):
-⍝        self.chip.pullup(pin, value)
-⍝
 ⍝
 ⍝if __name__ == '__main__':
 ⍝    # ***************************************************
