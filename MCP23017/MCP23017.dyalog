@@ -5,7 +5,7 @@
     ⍝ Member objects
     ⍝
     ⍝ IC2 bus device is attached to
-    :Field I2CBus
+    :Field Public I2CBus
 
     ⍝ Local variables and constants
     ⍝
@@ -40,6 +40,7 @@
       :Access Public                                                                                                                                             
       I2CBus←⎕NEW #.I2C
       r←initializeI2CBus
+      r←defaultConfiguration
     ∇
     ⍝ Device is initialized with a default I2C bus at the given address
     ∇ make1 address;r
@@ -48,6 +49,7 @@
       I2CBus←⎕NEW #.I2C
       DeviceAddress←address
       r←initializeI2CBus
+      r←defaultConfiguration
     ∇
     ⍝ Device is initialized with a given I2C bus an address
     ∇ make2(i2cbus address);r
@@ -56,11 +58,20 @@
       I2CBus←i2cbus
       DeviceAddress←address
       r←initializeI2CBus
+      r←defaultConfiguration
     ∇
     ⍝ Open I2C bus of this device
     ∇ r←initializeI2CBus
       r←I2CBus.OpenBus
       ⎕←'MCP23017 at Bus:Address=',(1 0⍕I2CBus.getBusID),':',⍕DeviceAddress,'is now alive.'
+    ∇
+    ⍝ Set default configuration
+    ∇ r←defaultConfiguration
+        ⍝ All pins of PortA and PortB are inputs
+      r←Config16 65535   ⍝ 0xFFFF
+        ⍝ All pullups of PortA and PortB are On
+      r←Pullup16 65535   ⍝ 0xFFFF
+      ⎕←'MCP23017 Default configuration set (All Input, Pullup ON).'
     ∇
 
     ⍝ Utility functions
@@ -85,10 +96,10 @@
     ⍝ pin       : index of pin/bit to change (First bit (2*0) is indicated by pin←0)
     ⍝ value     : ←0 Clear bit, ←1 Set bit
     ∇ r←readandchangepin(port pin value);newvalue;funret;funerr
-      ⍝ Read current value from port
+        ⍝ Read current value from port
       funret currvalue funerr←I2CBus.ReadBytes DeviceAddress port 0
-      ⍝ If read was not successful return error information
-      ⍝ otherwise change bit as instructed and return result
+        ⍝ If read was not successful return error information
+        ⍝ otherwise change bit as instructed and return result
       :If funret≠0
           r←funret currvalue funerr
       :Else
@@ -101,9 +112,9 @@
     ⍝ value       : ←0 Clear bit, ←1 Set bit
     ⍝ currvalue   : value to apply change to
     ∇ r←changepin(port pin value currvalue);newvalue
-      ⍝ Change bit
+        ⍝ Change bit
       newvalue←2⊥(changebit(_bool8 currvalue)pin value)
-      ⍝ Write new value to port/register
+        ⍝ Write new value to port/register
       r←I2CBus.WriteBytes DeviceAddress port newvalue
     ∇
 
@@ -112,30 +123,62 @@
     ⍝ Configure GPIOA (8 bit)
     ∇ r←Config8 value
       :Access Public
-      ⍝ Write 8 bit value to IODIRA
+        ⍝ Write 8 bit value to IODIRA
       r←I2CBus.WriteBytes DeviceAddress IODIRA value
     ∇
     ⍝ Configure GPIOA/B (16 bit)
     ∇ r←Config16 value;split
       :Access Public
-      ⍝ Encode value into 2 byte array and change LSB/HSB
+        ⍝ Encode value into 2 byte array and change LSB/HSB
       split←1⌽256 256⊤value
-      ⍝ Write 16 bit value to IODIRA/B
+        ⍝ Write 16 bit value to IODIRA/B
       r←I2CBus.WriteBytes DeviceAddress IODIRA split
     ∇
     ⍝ Configure a pin as Input/Output (single pin operation)
     ⍝ pin         : index of pin/bit to change (First bit (2*0) is indicated by pin←0)
     ⍝ mode        : ←0 Configure pin as output, ←1 ..as input
-    ⍝ returnvalue : funret IODIR-Register IODIR-Value I2CErrCode
+    ⍝ returnvalue : funret IODIR-Register IODIR-Pin-Value I2CErrCode
     ∇ r←Config(pin mode)
       :Access Public
-      ⍝ If pin is > 7 the PortB needs to be configured
+        ⍝ If pin is > 7 the PortB needs to be configured
       :If pin<8
-          ⍝ Configure addressed pin PortA
+            ⍝ Configure addressed pin PortA
           r←readandchangepin IODIRA pin mode
       :Else
-          ⍝ Configure addressed pin of PortB
+            ⍝ Configure addressed pin of PortB
           r←readandchangepin IODIRB(pin-8)mode
+      :EndIf
+    ∇
+
+    ⍝ GPPU configuration methods
+    ⍝
+    ⍝ Configure GPPUA (8 bit)
+    ∇ r←Pullup8 value
+      :Access Public
+        ⍝ Write 8 bit value to GPPUA
+      r←I2CBus.WriteBytes DeviceAddress GPPUA value
+    ∇
+    ⍝ Configure GPIOA/B (16 bit)
+    ∇ r←Pullup16 value;split
+      :Access Public
+        ⍝ Encode value into 2 byte array and change LSB/HSB
+      split←1⌽256 256⊤value
+        ⍝ Write 16 bit value to GPPUA/B
+      r←I2CBus.WriteBytes DeviceAddress GPPUA split
+    ∇
+    ⍝ Configure pullup for a given pin (single pin operation)
+    ⍝ pin         : index of pin/bit to change (First bit (2*0) is indicated by pin←0)
+    ⍝ mode        : ←0 Pullup Off, ←1 ..On
+    ⍝ returnvalue : funret GPPU-Register GPPU-Pin-Value I2CErrCode
+    ∇ r←Pullup(pin mode)
+      :Access Public
+        ⍝ If pin is > 7 the Pullups for PortB need to be configured
+      :If pin<8
+            ⍝ Configure addressed pullup for PortA
+          r←readandchangepin GPPUA pin mode
+      :Else
+            ⍝ Configure addressed pullup for PortB
+          r←readandchangepin GPPUB(pin-8)mode
       :EndIf
     ∇
 
@@ -144,15 +187,15 @@
     ⍝ Write 8bit value to GPIOA
     ∇ r←Write8 value
       :Access Public
-      ⍝ Write 8 bit value to GPIOA
+        ⍝ Write 8 bit value to GPIOA
       r←I2CBus.WriteBytes DeviceAddress OLATA value
     ∇
     ⍝ Write 16bit value to GPIOA/B
     ∇ r←Write16 value;split
       :Access Public
-      ⍝ Encode value into 2 byte array and change LSB/HSB
+        ⍝ Encode value into 2 byte array and change LSB/HSB
       split←1⌽256 256⊤value
-      ⍝ Write 16 bit value to GPIOA/B
+        ⍝ Write 16 bit value to GPIOA/B
       r←I2CBus.WriteBytes DeviceAddress OLATA split
     ∇
     ⍝ Output value to a GPIO Pin (single pin operation)
@@ -161,12 +204,12 @@
     ⍝ returnvalue : funret GPIO-Register GPIO-Value I2CErrCode
     ∇ r←Output(pin value)
       :Access Public
-      ⍝ If pin is > 7 PortB needs to be addressed
+        ⍝ If pin is > 7 PortB needs to be addressed
       :If pin<8
-          ⍝ Configure addressed pin PortA
+            ⍝ Configure addressed pin PortA
           r←readandchangepin GPIOA pin value
       :Else
-          ⍝ Configure addressed pin of PortB
+            ⍝ Configure addressed pin of PortB
           r←readandchangepin GPIOB(pin-8)value
       :EndIf
     ∇
@@ -176,38 +219,38 @@
     ⍝ Read 8 bit from latch register OLATA
     ∇ r←ReadU8;funret;funval;funerr
       :Access Public
-      ⍝ Read 8 bit from latch register OLATA
+        ⍝ Read 8 bit from latch register OLATA
       funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA 0
-      ⍝ Return value as read
+        ⍝ Return value as read
       r←funret funval funerr
     ∇
     ⍝ Read 8 bit (singned) from latch register OLATA
     ∇ r←ReadS8;funret;funval;funerr
       :Access Public
-      ⍝ Read 8 bit from latch register OLATA
+        ⍝ Read 8 bit from latch register OLATA
       funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA 0
-      ⍝ Return signed value if value >= 128 (0x80)
+        ⍝ Return signed value if value >= 128 (0x80)
       funval←((funval)(¯128+(funval-128)))[1+funval≥128]
       r←funret funval funerr
     ∇
     ⍝ Read 16 bit from latch register OLATA/OLATB
     ∇ r←ReadU16;funret;funval;funerr
       :Access Public
-      ⍝ Read 16 bit from latch register OLATA/OLATB
+        ⍝ Read 16 bit from latch register OLATA/OLATB
       funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA(0 0)
-      ⍝ Covert 2 byte array to 16 bit value (MSB switched)
+        ⍝ Covert 2 byte array to 16 bit value (MSB switched)
       funval←(256)⊥1⌽funval
-      ⍝ Return value as read
+        ⍝ Return value as read
       r←funret funval funerr
     ∇
     ⍝ Read 16 bit (singned) from latch register OLATA/OLATB
     ∇ r←ReadS16;funret;funval;funerr
       :Access Public
-      ⍝ Read 16 bit from latch register OLATA/OLATB
+        ⍝ Read 16 bit from latch register OLATA/OLATB
       funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA(0 0)
-      ⍝ Covert 2 byte array to 16 bit value (MSB switched)
+        ⍝ Covert 2 byte array to 16 bit value (MSB switched)
       funval←(256)⊥1⌽funval
-      ⍝ Return signed value if value >= 32768 (0x8000)
+        ⍝ Return signed value if value >= 32768 (0x8000)
       funval←((funval)(¯32768+(funval-32768)))[1+funval≥32768]
       r←funret funval funerr
     ∇
@@ -216,23 +259,23 @@
     ⍝ returnvalue : funret GPIO-PinValue I2CErrCode
     ∇ r←Input pin;funret;funval;funerr
       :Access Public
-      ⍝ If pin is > 7 PortB needs to be addressed
+        ⍝ If pin is > 7 PortB needs to be addressed
       :If pin<8
-          ⍝ Read PortA
+            ⍝ Read PortA
           funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATA 0
-          ⍝ Boolean endcode read value and select pin
+            ⍝ Boolean endcode read value and select pin
           funval←((8⍴2)⊤funval)[8-pin]
-          ⍝ Build return value
+            ⍝ Build return value
           funval←OLATA funval
       :Else
-          ⍝ Read PortB
+            ⍝ Read PortB
           funret funval funerr←I2CBus.ReadBytes DeviceAddress OLATB 0
-          ⍝ Boolean endcode read value and select pin with HSB correction
+            ⍝ Boolean endcode read value and select pin with HSB correction
           funval←((8⍴2)⊤funval)[16-pin]
-          ⍝ Build return value
+            ⍝ Build return value
           funval←OLATB funval
       :EndIf
-      ⍝ Return result
+        ⍝ Return result
       r←funret funval funerr
     ∇
 
@@ -294,19 +337,6 @@
 ⍝            self.direction |= self.i2c.readU8(MCP23017_IODIRB) << 8
 ⍝            self.i2c.write8(MCP23017_GPPUA, 0x00)
 ⍝            self.i2c.write8(MCP23017_GPPUB, 0x00)
-⍝
-⍝    def pullup(self, pin, value):
-⍝        if self.num_gpios <= 8:
-⍝            return self._readandchangepin(MCP23008_GPPUA, pin, value)
-⍝        if self.num_gpios <= 16:
-⍝            lvalue = self._readandchangepin(MCP23017_GPPUA, pin, value)
-⍝            if (pin < 8):
-⍝                return
-⍝            else:
-⍝                return self._readandchangepin(MCP23017_GPPUB, pin-8, value) << 8
-⍝
-⍝        self.outputvalue = self._readandchangepin(MCP23017_IODIRA, pin, value, self.outputvalue)
-⍝        return self.outputvalue
 ⍝
 ⍝if __name__ == '__main__':
 ⍝    # ***************************************************
