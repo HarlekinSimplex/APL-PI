@@ -1,79 +1,71 @@
 ﻿:Class CharLCDPlate
-⍝#!/usr/bin/python
+⍝ Dyalog APL class for Adafruit RGB-backlit LCD plate for Raspberry Pi
 ⍝
-⍝# Python library for Adafruit RGB-backlit LCD plate for Raspberry Pi.
-⍝# Written by Adafruit Industries.  MIT license.
-⍝
-⍝# This is essentially a complete rewrite, but the calling syntax
-⍝# and constants are based on code from lrvick and LiquidCrystal.
-⍝# lrvic - https://github.com/lrvick/raspi-hd44780/blob/master/hd44780.py
-⍝# LiquidCrystal - https://github.com/arduino/Arduino/blob/master/libraries/LiquidCrystal/LiquidCrystal.cpp
-⍝
-⍝from Adafruit_I2C import Adafruit_I2C
-⍝from time import sleep
-⍝
-⍝
-⍝class Adafruit_CharLCDPlate(Adafruit_I2C):
-⍝
-⍝    # ----------------------------------------------------------------------
-⍝    # Constants
-⍝
-⍝    # Port expander registers
-⍝    MCP23017_IOCON_BANK0    = 0x0A  # IOCON when Bank 0 active
-⍝    MCP23017_IOCON_BANK1    = 0x15  # IOCON when Bank 1 active
-⍝    # These are register addresses when in Bank 1 only:
-⍝    MCP23017_GPIOA          = 0x09
-⍝    MCP23017_IODIRB         = 0x10
-⍝    MCP23017_GPIOB          = 0x19
-⍝
-⍝    # Port expander input pin definitions
-⍝    SELECT                  = 0
-⍝    RIGHT                   = 1
-⍝    DOWN                    = 2
-⍝    UP                      = 3
-⍝    LEFT                    = 4
-⍝
-⍝    # LED colors
-⍝    OFF                     = 0x00
-⍝    RED                     = 0x01
-⍝    GREEN                   = 0x02
-⍝    BLUE                    = 0x04
-⍝    YELLOW                  = RED + GREEN
-⍝    TEAL                    = GREEN + BLUE
-⍝    VIOLET                  = RED + BLUE
-⍝    WHITE                   = RED + GREEN + BLUE
-⍝    ON                      = RED + GREEN + BLUE
-⍝
-⍝    # LCD Commands
-⍝    LCD_CLEARDISPLAY        = 0x01
-⍝    LCD_RETURNHOME          = 0x02
-⍝    LCD_ENTRYMODESET        = 0x04
-⍝    LCD_DISPLAYCONTROL      = 0x08
-⍝    LCD_CURSORSHIFT         = 0x10
-⍝    LCD_FUNCTIONSET         = 0x20
-⍝    LCD_SETCGRAMADDR        = 0x40
-⍝    LCD_SETDDRAMADDR        = 0x80
-⍝
-⍝    # Flags for display on/off control
-⍝    LCD_DISPLAYON           = 0x04
-⍝    LCD_DISPLAYOFF          = 0x00
-⍝    LCD_CURSORON            = 0x02
-⍝    LCD_CURSOROFF           = 0x00
-⍝    LCD_BLINKON             = 0x01
-⍝    LCD_BLINKOFF            = 0x00
-⍝
-⍝    # Flags for display entry mode
-⍝    LCD_ENTRYRIGHT          = 0x00
-⍝    LCD_ENTRYLEFT           = 0x02
-⍝    LCD_ENTRYSHIFTINCREMENT = 0x01
-⍝    LCD_ENTRYSHIFTDECREMENT = 0x00
-⍝
-⍝    # Flags for display/cursor shift
-⍝    LCD_DISPLAYMOVE = 0x08
-⍝    LCD_CURSORMOVE  = 0x00
-⍝    LCD_MOVERIGHT   = 0x04
-⍝    LCD_MOVELEFT    = 0x00
-⍝
+⍝ Dyalog APL port based on Python library for Adafruit RGB-backlit LCD plate for Raspberry Pi.
+⍝ Written by Adafruit Industries.  MIT license.
+
+⍝∇:require =/../MCP23017/MCP23017.dyalog
+    ⎕IO←⎕ML←1
+
+    ⍝ Constants
+    ⍝
+    ⍝ Port expander registers
+    MCP23017_IOCON_BANK0    ← 10  ⍝ 0x0A IOCON when Bank 0 active
+    MCP23017_IOCON_BANK1    ← 21  ⍝ 0x15 IOCON when Bank 1 active
+    
+    ⍝ These are register addresses when in Bank 1 only:
+    MCP23017_GPIOA          ← 9   ⍝ 0x09
+    MCP23017_IODIRB         ← 16  ⍝ 0x10
+    MCP23017_GPIOB          ← 25  ⍝ 0x19
+
+    ⍝ Port expander button input pin definitions
+    SELECT                  ← 0
+    RIGHT                   ← 1
+    DOWN                    ← 2
+    UP                      ← 3
+    LEFT                    ← 4
+
+    ⍝ LED colors
+    OFF                     ← 0   ⍝ 0x00
+    RED                     ← 1   ⍝ 0x01
+    GREEN                   ← 2   ⍝ 0x02
+    BLUE                    ← 4   ⍝ 0x04
+    YELLOW                  ← RED + GREEN
+    TEAL                    ← GREEN + BLUE
+    VIOLET                  ← RED + BLUE
+    WHITE                   ← RED + GREEN + BLUE
+    ON                      ← RED + GREEN + BLUE
+
+    ⍝ LCD Commands
+    LCD_CLEARDISPLAY        ← 1   ⍝ 0x01
+    LCD_RETURNHOME          ← 2   ⍝ 0x02
+    LCD_ENTRYMODESET        ← 4   ⍝ 0x04
+    LCD_DISPLAYCONTROL      ← 8   ⍝ 0x08
+    LCD_CURSORSHIFT         ← 16  ⍝ 0x10
+    LCD_FUNCTIONSET         ← 32  ⍝ 0x20
+    LCD_SETCGRAMADDR        ← 64  ⍝ 0x40
+    LCD_SETDDRAMADDR        ← 128 ⍝ 0x80
+
+    ⍝ Flags for display on/off control
+    LCD_DISPLAYON           ← 4   ⍝ 0x04
+    LCD_DISPLAYOFF          ← 0   ⍝ 0x00
+    LCD_CURSORON            ← 2   ⍝ 0x02
+    LCD_CURSOROFF           ← 0   ⍝ 0x00
+    LCD_BLINKON             ← 1   ⍝ 0x01
+    LCD_BLINKOFF            ← 0   ⍝ 0x00
+
+    ⍝ Flags for display entry mode
+    LCD_ENTRYRIGHT          ← 0   ⍝ 0x00
+    LCD_ENTRYLEFT           ← 2   ⍝ 0x02
+    LCD_ENTRYSHIFTINCREMENT ← 1   ⍝ 0x01
+    LCD_ENTRYSHIFTDECREMENT ← 0   ⍝ 0x00
+
+    ⍝ Flags for display/cursor shift
+    LCD_DISPLAYMOVE         ← 8   ⍝ 0x08
+    LCD_CURSORMOVE          ← 0   ⍝ 0x00
+    LCD_MOVERIGHT           ← 4   ⍝ 0x04
+    LCD_MOVELEFT            ← 0   ⍝ 0x00
+
 ⍝    # Line addresses for up to 4 line displays.  Maps line number to DDRAM address for line.
 ⍝    LINE_ADDRESSES = { 1: 0xC0, 2: 0x94, 3: 0xD4 }
 ⍝

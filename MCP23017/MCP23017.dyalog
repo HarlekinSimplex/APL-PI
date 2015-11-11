@@ -1,5 +1,5 @@
 ﻿:Class MCP23017
-
+⍝ Raspberry PI Dyalog APL class for 16bit GPIO expander MCP23017
 ⍝∇:require =/../I2C/I2C.dyalog
     ⎕IO←⎕ML←1
 
