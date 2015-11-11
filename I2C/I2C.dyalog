@@ -1,5 +1,8 @@
 ﻿:Class I2C
 ⍝ Raspberry I2C bus handler class
+⍝ 2015 Stephan Becker
+    
+    ⍝ Set environment
     ⎕IO←⎕ML←1
 
     ⍝ Member objects

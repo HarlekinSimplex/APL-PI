@@ -7,12 +7,20 @@
 ⍝∇:require =/../MCP23017/MCP23017.dyalog
     ⎕IO←⎕ML←1
 
+    ⍝ Hex/Boolean Tools
+    x2d←{ ⍺⊥('0123456789ABCDEF'⍳⍵)-1}            ⍝ Converts a ⍺ based string to a decimal
+    h2d←{16x2d⍵}                                 ⍝ Converts a hex string to a decimal
+    b2d←{ 2x2d⍵}                                 ⍝ Converts a boolean string to a decimal
+    d2x←{'0123456789ABCDEF'[1+(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵]} ⍝ Converts a decimal to a ⍺ based string
+    d2h←{16d2x⍵}                                 ⍝ Converts a decimal to a hex string
+    d2b←{ 2d2x⍵}                                 ⍝ Converts a decimal to a boolean string
+
     ⍝ Constants
     ⍝
     ⍝ Port expander registers
     MCP23017_IOCON_BANK0    ← 10  ⍝ 0x0A IOCON when Bank 0 active
     MCP23017_IOCON_BANK1    ← 21  ⍝ 0x15 IOCON when Bank 1 active
-    
+
     ⍝ These are register addresses when in Bank 1 only:
     MCP23017_GPIOA          ← 9   ⍝ 0x09
     MCP23017_IODIRB         ← 16  ⍝ 0x10
@@ -66,18 +74,37 @@
     LCD_MOVERIGHT           ← 4   ⍝ 0x04
     LCD_MOVELEFT            ← 0   ⍝ 0x00
 
-⍝    # Line addresses for up to 4 line displays.  Maps line number to DDRAM address for line.
-⍝    LINE_ADDRESSES = { 1: 0xC0, 2: 0x94, 3: 0xD4 }
-⍝
-⍝    # Truncation constants for message function truncate parameter.
-⍝    NO_TRUNCATE       = 0
-⍝    TRUNCATE          = 1
-⍝    TRUNCATE_ELLIPSIS = 2
-⍝
-⍝    # ----------------------------------------------------------------------
-⍝    # Constructor
-⍝
-⍝    def __init__(self, busnum=-1, addr=0x20, debug=False, backlight=ON):
+    ⍝ Line addresses for up to 4 line displays.  Maps line number to DDRAM address for line.
+    LINE_ADDRESSES          ← (h2d'C0')(h2d'94')(h2d'D4')
+
+    ⍝ Truncation constants for message function truncate parameter.
+    NO_TRUNCATE             ← 0
+    TRUNCATE                ← 1
+    TRUNCATE_ELLIPSIS       ← 2
+
+    ⍝ ----------------------------------------------------------------------
+    ⍝ Constructor
+    ∇ make0
+      :Implements Constructor
+      :Access Public
+      make1(h2d'20')            ⍝ Default address 0x20
+    ∇
+    ∇ make1 addr
+      :Implements Constructor
+      :Access Public
+      make2 addr ON              ⍝ Default backlight ON
+    ∇
+    ∇ make2(addr backlight)
+      :Implements Constructor
+      :Access Public
+      make3 addr backlight 0     ⍝ Default debug off
+    ∇
+    ∇ make3(addr backlight debug)
+      :Implements Constructor
+      :Access Public
+      ⎕←'Adafruit Char LCD Plate at address ',⍕addr,'with Debug',(('OFF' 'ON')[debug+1]),'and backlight b',(d2b backlight),' is alive.'
+    ∇
+⍝      def __init__(self, busnum=-1, addr=0x20, debug=False, backlight=ON):
 ⍝
 ⍝        self.i2c = Adafruit_I2C(addr, busnum, debug)
 ⍝
@@ -495,4 +522,6 @@
 ⍝                    lcd.backlight(b[2])
 ⍝                    prev = b
 ⍝                break
+
 :EndClass
+

@@ -1,6 +1,12 @@
 ﻿:Class MCP23017
-⍝ Raspberry PI Dyalog APL class for 16bit GPIO expander MCP23017
+⍝ Dyalog APL class for MCP23017 16bit GPIO Expander
+⍝
+⍝ Dyalog APL port based on Adafruit Python library for MCP23x port expander
+⍝ Written by Adafruit Industries. MIT license.
+⍝
 ⍝∇:require =/../I2C/I2C.dyalog
+
+    ⍝ Set environment
     ⎕IO←⎕ML←1
 
     ⍝ Member objects
