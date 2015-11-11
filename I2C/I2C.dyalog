@@ -1,5 +1,5 @@
 ﻿:Class I2C
-⍝ Raspberry I2C bus handler wrapper class
+⍝ Raspberry I2C bus handler class
     ⎕IO←⎕ML←1
 
     ⍝ Member objects
