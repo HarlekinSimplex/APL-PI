@@ -8,12 +8,14 @@
     ⎕IO←⎕ML←1
 
     ⍝ Hex/Boolean Tools
-    x2d←{ ⍺⊥('0123456789ABCDEF'⍳⍵)-1}            ⍝ Converts a ⍺ based string to a decimal
-    h2d←{16x2d⍵}                                 ⍝ Converts a hex string to a decimal
-    b2d←{ 2x2d⍵}                                 ⍝ Converts a boolean string to a decimal
-    d2x←{'0123456789ABCDEF'[1+(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵]} ⍝ Converts a decimal to a ⍺ based string
-    d2h←{16d2x⍵}                                 ⍝ Converts a decimal to a hex string
-    d2b←{ 2d2x⍵}                                 ⍝ Converts a decimal to a boolean string
+    x2d ←{⍺⊥('0123456789ABCDEF'⍳⍵)-1}             ⍝ Converts a ⍺ based string to a decimal
+    h2d ←{16x2d⍵}                                 ⍝ Converts a hex string to a decimal
+    b2d ←{2x2d⍵}                                  ⍝ Converts a boolean string to a decimal
+    d2x ←{'0123456789ABCDEF'[1+(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵]} ⍝ Converts a decimal to a ⍺ based string
+    d2h ←{16d2x⍵}                                 ⍝ Converts a decimal to a hex string
+    d2b ←{2d2x⍵}                                  ⍝ Converts a decimal to a boolean string
+    d2xA←{(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵}                       ⍝ Converts a decimal to a ⍺ based array
+    d2bA←{2d2xA⍵}                                 ⍝ Converts a decimal to a boolean array
 
     ⍝ Constants
     ⍝
@@ -83,6 +85,13 @@
     TRUNCATE_ELLIPSIS       ← 2
 
     ⍝ ----------------------------------------------------------------------
+    ⍝ Fields
+    :Field Public MCP
+    :Field Public PortA
+    :Field Public PortB
+    :Field Public DDRB
+
+    ⍝ ----------------------------------------------------------------------
     ⍝ Constructor
     ∇ make0
       :Implements Constructor
@@ -92,74 +101,94 @@
     ∇ make1 addr
       :Implements Constructor
       :Access Public
-      make2 addr ON              ⍝ Default backlight ON
+      make2 addr ON              ⍝ Default backlight ON (White)
     ∇
     ∇ make2(addr backlight)
       :Implements Constructor
       :Access Public
       make3 addr backlight 0     ⍝ Default debug off
     ∇
-    ∇ make3(addr backlight debug)
+    ∇ make3(addr backlight debug);c;displayshift;displaymode;displaycontrol
       :Implements Constructor
       :Access Public
+     
+        ⍝ Instatiate Port Expander
+      MCP←⎕NEW #.MCP23017(h2d'20')
+     
+        ⍝ I2C is relatively slow. MCP output port states are cached
+        ⍝ so we don't need to constantly poll-and-change bit states.
+      PortA PortB DDRB←(8⍴0)(8⍴0)(0 0 0 0 0 0 1 0)
+     
+        ⍝ Set initial backlight color as 8 bit boolean array
+        ⍝ to the inverse of the default ON
+      c←~8⍴2⊤backlight
+        ⍝ Post backlight value to output register cache
+        ⍝ Color Bit 0 and 1 are connected to PortA Bit 6 and 7
+        ⍝ Color Bit 2 is connected to PortB Bit 0
+      PortA←(PortA∧(0 0 1 1 1 1 1 1))∨(¯2⌽c∧(0 0 0 0 0 0 1 1))
+      PortB←(PortB∧(1 1 1 1 1 1 1 0))∨(¯2⌽c∧(0 0 0 0 0 1 0 0))
+     
+        ⍝ Set MCP23017 IOCON register to Bank 0 with sequential operation.
+        ⍝ If chip is already set for Bank 0, this will just write to OLATB,
+        ⍝ which won't seriously bother anything on the plate right now
+        ⍝ (blue backlight LED will come on, but that's done in the next
+        ⍝ step anyway).
+      MCP.WriteBytes MCP23017_IOCON_BANK1(0)
+     
+        ⍝ Brute force reload ALL registers to known state.
+        ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
+        ⍝ Assemble data block to write to MCP
+      initdata←2⊥(0 0 1 1 1 1 1 1)   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
+      initdata,←2⊥DDRB               ⍝ LCD       D7=input, Blue LED=output
+      initdata,←2⊥(0 0 1 1 1 1 1 1)  ⍝ IPOLA     Invert polarity on button inputs
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENA  Disable interrupt-on-change
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALA
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCONA
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCONB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IOCON
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IOCON
+      initdata,←2⊥(0 0 1 1 1 1 1 1)  ⍝ GPPUA     Enable pull-ups on buttons
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPPUB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTFA
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTFB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCAPA
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCAPB
+      initdata,←2⊥PortA              ⍝ GPIOA
+      initdata,←2⊥PortB              ⍝ GPIOB
+      initdata,←2⊥PortA              ⍝ OLATA
+      initdata,←2⊥PortB              ⍝ OLATB
+        ⍝ Write init data to MCP
+      MCP.WriteBytes 0(initdata)
+     
+        ⍝ Switch to Bank 1 and disable sequential operation.
+        ⍝ From this point forward, the register addresses do NOT match
+        ⍝ the list immediately above.  Instead, use the constants defined
+        ⍝ at the start of the class.  Also, the address register will no
+        ⍝ longer increment automatically after this -- multi-byte
+        ⍝ # operations must be broken down into single-byte calls.
+      MCP.WriteBytes MCP23017_IOCON_BANK0(2⊥(1 0 1 0 0 0 0 0))
+     
+        ⍝ Construct some display commands
+      displayshift←(8⍴2⊤LCD_CURSORMOVE)∨(8⍴2⊤LCD_MOVERIGHT)
+      displaymode←(8⍴2⊤LCD_ENTRYLEFT)∨(8⍴2⊤LCD_ENTRYSHIFTDECREMENT)
+      displaycontrol←(8⍴2⊤LCD_DISPLAYON)∨(8⍴2⊤LCD_CURSOROFF)∨(8⍴2⊤LCD_BLINKOFF)
+     
       ⎕←'Adafruit Char LCD Plate at address ',⍕addr,'with Debug',(('OFF' 'ON')[debug+1]),'and backlight b',(d2b backlight),' is alive.'
     ∇
+
+    ⍝ Destructor
+    ∇ close;r
+      :Implements Destructor
+      ⎕←'Adafruit Char LCD Plate at address ',⍕MCP.DeviceAddress,'will be closed.'
+      MCP←⍬
+      r←0
+    ∇
+
 ⍝      def __init__(self, busnum=-1, addr=0x20, debug=False, backlight=ON):
 ⍝
-⍝        self.i2c = Adafruit_I2C(addr, busnum, debug)
-⍝
-⍝        # I2C is relatively slow.  MCP output port states are cached
-⍝        # so we don't need to constantly poll-and-change bit states.
-⍝        self.porta, self.portb, self.ddrb = 0, 0, 0b00000010
-⍝
-⍝        # Set initial backlight color.
-⍝        c          = ~backlight
-⍝        self.porta = (self.porta & 0b00111111) | ((c & 0b011) << 6)
-⍝        self.portb = (self.portb & 0b11111110) | ((c & 0b100) >> 2)
-⍝
-⍝        # Set MCP23017 IOCON register to Bank 0 with sequential operation.
-⍝        # If chip is already set for Bank 0, this will just write to OLATB,
-⍝        # which won't seriously bother anything on the plate right now
-⍝        # (blue backlight LED will come on, but that's done in the next
-⍝        # step anyway).
-⍝        self.i2c.bus.write_byte_data(
-⍝          self.i2c.address, self.MCP23017_IOCON_BANK1, 0)
-⍝
-⍝        # Brute force reload ALL registers to known state.  This also
-⍝        # sets up all the input pins, pull-ups, etc. for the Pi Plate.
-⍝        self.i2c.bus.write_i2c_block_data(
-⍝          self.i2c.address, 0, 
-⍝          [ 0b00111111,   # IODIRA    R+G LEDs=outputs, buttons=inputs
-⍝            self.ddrb ,   # IODIRB    LCD D7=input, Blue LED=output
-⍝            0b00111111,   # IPOLA     Invert polarity on button inputs
-⍝            0b00000000,   # IPOLB
-⍝            0b00000000,   # GPINTENA  Disable interrupt-on-change
-⍝            0b00000000,   # GPINTENB
-⍝            0b00000000,   # DEFVALA
-⍝            0b00000000,   # DEFVALB
-⍝            0b00000000,   # INTCONA
-⍝            0b00000000,   # INTCONB
-⍝            0b00000000,   # IOCON
-⍝            0b00000000,   # IOCON
-⍝            0b00111111,   # GPPUA     Enable pull-ups on buttons
-⍝            0b00000000,   # GPPUB
-⍝            0b00000000,   # INTFA
-⍝            0b00000000,   # INTFB
-⍝            0b00000000,   # INTCAPA
-⍝            0b00000000,   # INTCAPB
-⍝            self.porta,   # GPIOA
-⍝            self.portb,   # GPIOB
-⍝            self.porta,   # OLATA
-⍝            self.portb ]) # OLATB
-⍝
-⍝        # Switch to Bank 1 and disable sequential operation.
-⍝        # From this point forward, the register addresses do NOT match
-⍝        # the list immediately above.  Instead, use the constants defined
-⍝        # at the start of the class.  Also, the address register will no
-⍝        # longer increment automatically after this -- multi-byte
-⍝        # operations must be broken down into single-byte calls.
-⍝        self.i2c.bus.write_byte_data(
-⍝          self.i2c.address, self.MCP23017_IOCON_BANK0, 0b10100000)
 ⍝
 ⍝        self.displayshift   = (self.LCD_CURSORMOVE |
 ⍝                               self.LCD_MOVERIGHT)

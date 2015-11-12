@@ -13,11 +13,11 @@
     ⍝
     ⍝ IC2 bus device is attached to
     :Field Public I2CBus
+    ⍝ Device address
+    :Field Public DeviceAddress ← 32   ⍝ Default 0x20 (A0/A1/A2 set to low)
 
     ⍝ Local variables and constants
     ⍝
-    ⍝ Device address
-    DeviceAddress ← 32   ⍝ Default 0x20 (A0/A1/A2 set to low)
     ⍝ MCP23017 Register addresses
     IODIRA ← 0     ⍝ 0x00
     IODIRB ← 1     ⍝ 0x01
@@ -187,6 +187,15 @@
             ⍝ Configure addressed pullup for PortB
           r←readandchangepin GPPUB(pin-8)mode
       :EndIf
+    ∇
+
+    ⍝ Generic write methods
+    ⍝
+    ⍝ Write Bytes to register
+    ∇ r←WriteBytes(register value)
+      :Access Public
+        ⍝ Write given value(s) to register address
+      r←I2CBus.WriteBytes DeviceAddress register value
     ∇
 
     ⍝ GPIO output methods
