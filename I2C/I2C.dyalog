@@ -40,17 +40,17 @@
     ∇ r←getPiRevision;tie;cpuinfo;bin;rev
       ⍝ Open cpuinfo and read 500 bytes
       tie←('/proc/','cpuinfo')⎕NTIE 0
-      cpuinfo←⎕NREAD tie 80 500
+      cpuinfo←⎕NREAD tie 80 2000
      
       ⍝ Partition into an array of strings
       bin←~cpuinfo∊⎕UCS 13 10
       cpuinfo←↑bin{⎕ML←3 ⋄ ⍺⊂⍵}cpuinfo
      
       ⍝ Find 'Revison' entry and capture revison value
-      rev←⍎(((∨/[2]'Revision'⍷cpuinfo)/[1]cpuinfo)[1;12 13 14 15])
+      rev←((∨/[2]'Revision'⍷cpuinfo)/[1]cpuinfo)[1;12 13 14 15]
      
-      ⍝ For revision values 0,2,3 →Rev1 ; else →Rev2
-      r←1+∧/~rev=(0 2 3)
+      ⍝ For revision values 0,2,3 →Rev1=0 ; else →Rev2=1
+      r←1+~∨/(⊂rev)≡¨('0000' '0002' '0003')
     ∇
 
     ⍝ Retriev actual I2C bus ID 
