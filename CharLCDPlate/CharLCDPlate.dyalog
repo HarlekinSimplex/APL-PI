@@ -118,32 +118,32 @@
       :Implements Constructor
       :Access Public
      
-      ⍝ Instatiate Port Expander
+        ⍝ Instatiate Port Expander
       MCP←⎕NEW #.MCP23017(h2d'20')
      
-      ⍝ I2C is relatively slow. MCP output port states are cached
-      ⍝ so we don't need to constantly poll-and-change bit states.
+        ⍝ I2C is relatively slow. MCP output port states are cached
+        ⍝ so we don't need to constantly poll-and-change bit states.
       PortA PortB DDRB←(8⍴0)(8⍴0)(0 0 0 0 0 0 1 0)
      
-      ⍝ Set initial backlight color as 8 bit boolean array
-      ⍝ to the inverse of the default ON
+        ⍝ Set initial backlight color as 8 bit boolean array
+        ⍝ to the inverse of the default ON
       c←~8⍴2⊤backlight
-      ⍝ Post backlight value to output register cache
-      ⍝ Color Bit 0 and 1 are connected to PortA Bit 6 and 7
-      ⍝ Color Bit 2 is connected to PortB Bit 0
+        ⍝ Post backlight value to output register cache
+        ⍝ Color Bit 0 and 1 are connected to PortA Bit 6 and 7
+        ⍝ Color Bit 2 is connected to PortB Bit 0
       PortA←(PortA∧(0 0 1 1 1 1 1 1))∨(¯2⌽c∧(0 0 0 0 0 0 1 1))
       PortB←(PortB∧(1 1 1 1 1 1 1 0))∨(¯2⌽c∧(0 0 0 0 0 1 0 0))
      
-      ⍝ Set MCP23017 IOCON register to Bank 0 with sequential operation.
-      ⍝ If chip is already set for Bank 0, this will just write to OLATB,
-      ⍝ which won't seriously bother anything on the plate right now
-      ⍝ (blue backlight LED will come on, but that's done in the next
-      ⍝ step anyway).
+        ⍝ Set MCP23017 IOCON register to Bank 0 with sequential operation.
+        ⍝ If chip is already set for Bank 0, this will just write to OLATB
+        ⍝ which won't seriously bother anything on the plate right now
+        ⍝ (blue backlight LED will come on, but that's done in the next
+        ⍝ step anyway).
       MCP.WriteBytes MCP23017_IOCON_BANK1(0)
      
-      ⍝ Brute force reload ALL registers to known state.
-      ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
-      ⍝ Assemble data block to write to MCP
+        ⍝ Brute force reload ALL registers to known state.
+        ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
+        ⍝ Assemble data block to write to MCP
       initdata←2⊥(0 0 1 1 1 1 1 1)   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
       initdata,←2⊥DDRB               ⍝ LCD       D7=input, Blue LED=output
       initdata,←2⊥(0 0 1 1 1 1 1 1)  ⍝ IPOLA     Invert polarity on button inputs
@@ -166,19 +166,19 @@
       initdata,←2⊥PortB              ⍝ GPIOB
       initdata,←2⊥PortA              ⍝ OLATA
       initdata,←2⊥PortB              ⍝ OLATB
-      ⍝ Write init data to MCP
-      ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
+        ⍝ Write init data to MCP
+        ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
       MCP.WriteBytes 0(initdata)
      
-      ⍝ Switch to Bank 1 and disable sequential operation.
-      ⍝ From this point forward, the register addresses do NOT match
-      ⍝ the list immediately above.  Instead, use the constants defined
-      ⍝ at the start of the class.  Also, the address register will no
-      ⍝ longer increment automatically after this -- multi-byte
-      ⍝ # operations must be broken down into single-byte calls.
+        ⍝ Switch to Bank 1 and disable sequential operation.
+        ⍝ From this point forward, the register addresses do NOT match
+        ⍝ the list immediately above.  Instead, use the constants defined
+        ⍝ at the start of the class.  Also, the address register will no
+        ⍝ longer increment automatically after this -- multi-byte
+        ⍝ # operations must be broken down into single-byte calls.
       MCP.WriteBytes MCP23017_IOCON_BANK0(2⊥(1 0 1 0 0 0 0 0))
      
-      ⍝ Construct some display commands
+        ⍝ Construct some display commands
       displayshift←(8⍴2⊤LCD_CURSORMOVE)∨(8⍴2⊤LCD_MOVERIGHT)
       displaymode←(8⍴2⊤LCD_ENTRYLEFT)∨(8⍴2⊤LCD_ENTRYSHIFTDECREMENT)
       displaycontrol←(8⍴2⊤LCD_DISPLAYON)∨(8⍴2⊤LCD_CURSOROFF)∨(8⍴2⊤LCD_BLINKOFF)
@@ -232,12 +232,102 @@
     ⍝ are issued.
     pollables ← LCD_CLEARDISPLAY LCD_RETURNHOME
 
+    ⍝ Write byte, list or string value to LCD
+    ∇ r←WriteData value
+        ⍝ Call Write with CharMode←False
+      r←Write value 0
+    ∇
+    ∇ r←WriteChar value
+        ⍝ Call Write with CharMode←True
+      r←Write value 1
+    ∇
+    ∇ r←Write(value charmode);lo;hi;funret;funval;funerr;bits
+        ⍝ Busy Flag Poll
+        ⍝ If pin D7 is in input state, poll LCD busy flag until clear.
+      :If (8⍴0)≢DDRB∧(0 0 0 0 0 0 1 0)
+          ⎕←'Initiate Busy Flag Poll'
+            ⍝ Preserve Blue LED pin
+          lo←(PortB∧(0 0 0 0 0 0 0 1))∨(0 1 0 0 0 0 0 0)
+            ⍝ E=1 (strobe)
+          hi←lo∨(0 0 1 0 0 0 0 0)
+            ⍝ Write
+          MCP.WriteBytes MCP23017_GPIOB lo
+     
+            ⍝ Poll LCD busy flag
+          :Repeat
+                ⍝ Strobe high (enable)
+              MCP.SequentialWriteBytes hi
+                ⍝ First nybble contains busy state
+              funret bits funerr←MCP.SequentialReadBytes 0
+                ⍝ Strobe low, high, low.  Second nybble (A3) is ignored.
+              MCP.WriteBytes MCP23017_GPIOB(lo hi lo)
+              PortB←lo
+            ⍝ D7=0,not busy
+          :Until (8⍴0)≡bits∧(0 0 0 0 0 0 1 0)
+          ⎕←'Poll completed'
+     
+            ⍝  Polling complete, change D7 pin to output
+          DDRB∧←(1 1 1 1 1 1 0 1)
+          MCP.WriteBytes MCP23017_IODIRB DDRB
+      :Else
+          ⎕←'No Poll required'
+      :EndIf
+     
+        ⍝ Mask out PORTB LCD control bits
+      bitmask←PortB∧(0 0 0 0 0 0 0 1)
+      :If charmode
+            ⍝ Set data bit if not a command
+          bitmask∨←(1 0 0 0 0 0 0 0)
+      :EndIf
+     
+      r←0
+    ∇
+
     ⍝ ----------------------------------------------------------------------
     ⍝ Destructor
     ⍝
     ∇ close;r
       :Implements Destructor
       ⎕←'Adafruit Char LCD Plate at address ',⍕MCP.DeviceAddress,'will be closed.'
+     
+      ⍝ Puts the MCP23017 back in Bank 0 + sequential write mode
+      MCP.WriteBytes MCP23017_IOCON_BANK1(0)
+     
+      ⍝ Turn off LEDs on the way out
+      PortA←1 1 0 0 0 0 0 0
+      PortB←0 0 0 0 0 0 0 1
+⍝        sleep(0.0015)
+     
+      ⍝ Brute force reload ALL registers to known state.
+      ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
+      ⍝ Assemble data block to write to MCP
+      initdata←2⊥(0 0 1 1 1 1 1 1)   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
+      initdata,←2⊥DDRB               ⍝ LCD       D7=input, Blue LED=output
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLA
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENA  Disable interrupt-on-change
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALA
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCONA
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCONB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IOCON
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IOCON
+      initdata,←2⊥(0 0 1 1 1 1 1 1)  ⍝ GPPUA     Enable pull-ups on buttons
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPPUB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTFA
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTFB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCAPA
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCAPB
+      initdata,←2⊥PortA              ⍝ GPIOA
+      initdata,←2⊥PortB              ⍝ GPIOB
+      initdata,←2⊥PortA              ⍝ OLATA
+      initdata,←2⊥PortB              ⍝ OLATB
+      ⍝ Write init data to MCP
+      ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
+      MCP.WriteBytes 0(initdata)
+     
+      ⍝ Deconstruct MCP23017 Insatance
       MCP←⍬
       r←0
     ∇
@@ -268,31 +358,6 @@
 ⍝    # Write byte, list or string value to LCD
 ⍝    def write(self, value, char_mode=False):
 ⍝        """ Send command/data to LCD """
-⍝
-⍝        # If pin D7 is in input state, poll LCD busy flag until clear.
-⍝        if self.ddrb & 0b00000010:
-⍝            lo = (self.portb & 0b00000001) | 0b01000000
-⍝            hi = lo | 0b00100000 # E=1 (strobe)
-⍝            self.i2c.bus.write_byte_data(
-⍝              self.i2c.address, self.MCP23017_GPIOB, lo)
-⍝            while True:
-⍝                # Strobe high (enable)
-⍝                self.i2c.bus.write_byte(self.i2c.address, hi)
-⍝                # First nybble contains busy state
-⍝                bits = self.i2c.bus.read_byte(self.i2c.address)
-⍝                # Strobe low, high, low.  Second nybble (A3) is ignored.
-⍝                self.i2c.bus.write_i2c_block_data(
-⍝                  self.i2c.address, self.MCP23017_GPIOB, [lo, hi, lo])
-⍝                if (bits & 0b00000010) == 0: break # D7=0, not busy
-⍝            self.portb = lo
-⍝
-⍝            # Polling complete, change D7 pin to output
-⍝            self.ddrb &= 0b11111101
-⍝            self.i2c.bus.write_byte_data(self.i2c.address,
-⍝              self.MCP23017_IODIRB, self.ddrb)
-⍝
-⍝        bitmask = self.portb & 0b00000001   # Mask out PORTB LCD control bits
-⍝        if char_mode: bitmask |= 0b10000000 # Set data bit if not a command
 ⍝
 ⍝        # If string or list, iterate through multiple write ops
 ⍝        if isinstance(value, str):
@@ -345,43 +410,6 @@
 ⍝        self.numlines = lines
 ⍝        self.numcols = cols
 ⍝        self.clear()
-⍝
-⍝
-⍝    # Puts the MCP23017 back in Bank 0 + sequential write mode so
-⍝    # that other code using the 'classic' library can still work.
-⍝    # Any code using this newer version of the library should
-⍝    # consider adding an atexit() handler that calls this.
-⍝    def stop(self):
-⍝        self.porta = 0b11000000  # Turn off LEDs on the way out
-⍝        self.portb = 0b00000001
-⍝        sleep(0.0015)
-⍝        self.i2c.bus.write_byte_data(
-⍝          self.i2c.address, self.MCP23017_IOCON_BANK1, 0)
-⍝        self.i2c.bus.write_i2c_block_data(
-⍝          self.i2c.address, 0, 
-⍝          [ 0b00111111,   # IODIRA
-⍝            self.ddrb ,   # IODIRB
-⍝            0b00000000,   # IPOLA
-⍝            0b00000000,   # IPOLB
-⍝            0b00000000,   # GPINTENA
-⍝            0b00000000,   # GPINTENB
-⍝            0b00000000,   # DEFVALA
-⍝            0b00000000,   # DEFVALB
-⍝            0b00000000,   # INTCONA
-⍝            0b00000000,   # INTCONB
-⍝            0b00000000,   # IOCON
-⍝            0b00000000,   # IOCON
-⍝            0b00111111,   # GPPUA
-⍝            0b00000000,   # GPPUB
-⍝            0b00000000,   # INTFA
-⍝            0b00000000,   # INTFB
-⍝            0b00000000,   # INTCAPA
-⍝            0b00000000,   # INTCAPB
-⍝            self.porta,   # GPIOA
-⍝            self.portb,   # GPIOB
-⍝            self.porta,   # OLATA
-⍝            self.portb ]) # OLATB
-⍝
 ⍝
 ⍝    def clear(self):
 ⍝        self.write(self.LCD_CLEARDISPLAY)

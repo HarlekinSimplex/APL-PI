@@ -192,6 +192,12 @@
     ⍝ Generic write methods
     ⍝
     ⍝ Write Bytes to register
+    ⍝ Sequential Write bytes to device
+    ∇ r←SequentialWriteBytes value
+      :Access Public
+        ⍝ Write given value(s) to device
+      r←I2CBus.SequentialWriteBytes DeviceAddress value
+    ∇
     ∇ r←WriteBytes(register value)
       :Access Public
         ⍝ Write given value(s) to register address
@@ -228,6 +234,21 @@
             ⍝ Configure addressed pin of PortB
           r←readandchangepin GPIOB(pin-8)value
       :EndIf
+    ∇
+
+    ⍝ Generic read methods
+    ⍝
+    ⍝ Sequential read bytes from device
+    ∇ r←SequentialReadBytes buffer
+      :Access Public
+        ⍝ Read bytes from device
+      r←I2CBus.SequentialReadBytes DeviceAddress buffer
+    ∇
+    ⍝ Read Bytes from register
+    ∇ r←ReadBytes register buffer
+      :Access Public
+        ⍝ Read bytes from given register
+      r←I2CBus.ReadBytes DeviceAddress register buffer
     ∇
 
     ⍝ GPIO input methods
