@@ -183,14 +183,15 @@
       displaymode←(8⍴2⊤LCD_ENTRYLEFT)∨(8⍴2⊤LCD_ENTRYSHIFTDECREMENT)
       displaycontrol←(8⍴2⊤LCD_DISPLAYON)∨(8⍴2⊤LCD_CURSOROFF)∨(8⍴2⊤LCD_BLINKOFF)
      
-⍝        self.write(0x33) # Init
-⍝        self.write(0x32) # Init
-⍝        self.write(0x28) # 2 line 5x8 matrix
-⍝        self.write(self.LCD_CLEARDISPLAY)
-⍝        self.write(self.LCD_CURSORSHIFT    | self.displayshift)
-⍝        self.write(self.LCD_ENTRYMODESET   | self.displaymode)
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-⍝        self.write(self.LCD_RETURNHOME)
+        ⍝ Initialize display
+      WriteData 51  ⍝ 0x33 - Init
+      WriteData 50  ⍝ 0x32 - Init
+      WriteData 40  ⍝ 0x28 - 2 line 5x8 matrix
+      WriteData 2⊥(8⍴2⊤LCD_CLEARDISPLAY)
+      WriteData 2⊥(8⍴2⊤LCD_CURSORSHIFT)∨displayshift
+      WriteData 2⊥(8⍴2⊤LCD_ENTRYMODESET)∨displaymode
+      WriteData 2⊥(8⍴2⊤LCD_DISPLAYCONTROL)∨displaycontrol
+      WriteData 2⊥(8⍴2⊤LCD_RETURNHOME)
      
       ⎕←'Adafruit Char LCD Plate at address ',⍕addr,'with Debug',(('OFF' 'ON')[debug+1]),'and backlight b',(d2b backlight),' is alive.'
     ∇
@@ -204,10 +205,10 @@
     ⍝ won't work. This table remaps 4-bit data values to MCP PORTB
     ⍝ outputs, incorporating both the reverse and shift.
     ⍝ Usage: flip[1+2⊥ _bAarray2flip_ ]
-    flip ←(0 0 0 0 0 0 0 0) (0 0 0 1 0 0 0 0) (0 0 0 0 1 0 0 0) (0 0 0 1 1 0 0 0)
-    flip,←(0 0 0 0 0 1 0 0) (0 0 0 1 0 1 0 0) (0 0 0 0 1 1 0 0) (0 0 0 1 1 1 0 0)
-    flip,←(0 0 0 0 0 0 1 0) (0 0 0 1 0 0 1 0) (0 0 0 0 1 0 1 0) (0 0 0 1 1 0 1 0)
-    flip,←(0 0 0 0 0 1 1 0) (0 0 0 1 0 1 1 0) (0 0 0 0 1 1 1 0) (0 0 0 1 1 1 1 0) 
+    flip ←(0 0 0 0 0 0 0 0)(0 0 0 1 0 0 0 0)(0 0 0 0 1 0 0 0)(0 0 0 1 1 0 0 0)
+    flip,←(0 0 0 0 0 1 0 0)(0 0 0 1 0 1 0 0)(0 0 0 0 1 1 0 0)(0 0 0 1 1 1 0 0)
+    flip,←(0 0 0 0 0 0 1 0)(0 0 0 1 0 0 1 0)(0 0 0 0 1 0 1 0)(0 0 0 1 1 0 1 0)
+    flip,←(0 0 0 0 0 1 1 0)(0 0 0 1 0 1 1 0)(0 0 0 0 1 1 1 0)(0 0 0 1 1 1 1 0) 
 
     ⍝ Low-level 4-bit interface for LCD output.  This doesn't actually
     ⍝ write data, just returns an array of boolean arrays of the PORTB state over time.
@@ -241,34 +242,34 @@
         ⍝ Call Write with CharMode←True
       r←Write value 1
     ∇
-    ∇ r←Write(value charmode);lo;hi;funret;funval;funerr;bits
+    ∇ r←Write(value charmode);lo;hi;funret;funval;funerr;bits;data
         ⍝ Busy Flag Poll
         ⍝ If pin D7 is in input state, poll LCD busy flag until clear.
-      :If (8⍴0)≢DDRB∧(0 0 0 0 0 0 1 0)
+      :If (8⍴0)≢(DDRB∧(0 0 0 0 0 0 1 0))
           ⎕←'Initiate Busy Flag Poll'
             ⍝ Preserve Blue LED pin
           lo←(PortB∧(0 0 0 0 0 0 0 1))∨(0 1 0 0 0 0 0 0)
             ⍝ E=1 (strobe)
           hi←lo∨(0 0 1 0 0 0 0 0)
             ⍝ Write
-          MCP.WriteBytes MCP23017_GPIOB lo
+          MCP.WriteBytes MCP23017_GPIOB(2⊥lo)
      
             ⍝ Poll LCD busy flag
           :Repeat
                 ⍝ Strobe high (enable)
-              MCP.SequentialWriteBytes hi
+              MCP.SequentialWriteBytes(2⊥hi)
                 ⍝ First nybble contains busy state
               funret bits funerr←MCP.SequentialReadBytes 0
                 ⍝ Strobe low, high, low.  Second nybble (A3) is ignored.
-              MCP.WriteBytes MCP23017_GPIOB(lo hi lo)
+              MCP.WriteBytes MCP23017_GPIOB(2⊥¨lo hi lo)
               PortB←lo
             ⍝ D7=0,not busy
-          :Until (8⍴0)≡bits∧(0 0 0 0 0 0 1 0)
+          :Until (8⍴0)≡(bits∧(0 0 0 0 0 0 1 0))
           ⎕←'Poll completed'
      
             ⍝  Polling complete, change D7 pin to output
-          DDRB∧←(1 1 1 1 1 1 0 1)
-          MCP.WriteBytes MCP23017_IODIRB DDRB
+          DDRB←DDRB∧(1 1 1 1 1 1 0 1)
+          MCP.WriteBytes MCP23017_IODIRB(2⊥DDRB)
       :Else
           ⎕←'No Poll required'
       :EndIf
@@ -277,7 +278,46 @@
       bitmask←PortB∧(0 0 0 0 0 0 0 1)
       :If charmode
             ⍝ Set data bit if not a command
-          bitmask∨←(1 0 0 0 0 0 0 0)
+          bitmask←bitmask∨(1 0 0 0 0 0 0 0)
+      :EndIf
+     
+        ⍝ Convert values in value into boolean arrays of 8 bit
+        ⍝ Resulting array will be processed by out4 (flip and hi/lo strobe)
+        ⍝ Finally remove enclosur and catenate the boolean arrays
+        ⍝ 'data' now holds an array of bytes to be sent in chunks of 32 bytes
+        ⍝ to MCP device
+      data←,↑{out4 bitmask ⍵}¨{(8⍴2)⊤⍵}¨value
+     
+        ⍝ Set PortB to last byte that will be send
+      PortB←⊃¯1↑data
+     
+        ⍝ Decode data to decimal
+      data←2⊥¨data
+     
+        ⍝ Write data split into 32 bytes chunks
+        ⍝ Loop runs as long as there are data bytes to send
+      :While (⍴data)≠0
+            ⍝ Check if we still have 32 or more bytes left
+          :If (⍴data)≥32
+                ⍝ Send 32 bytes and drop them from queue afterwards
+              ⎕←'Send 32 bytes'
+              MCP.WriteBytes MCP23017_GPIOB(32↑data)
+              data←32↓data
+          :Else
+                ⍝ Last chunk is less then 32 bytes
+                ⍝ Send and drop them after send
+              ⎕←'Send ',(⍕⍴data),' bytes'
+              MCP.WriteBytes MCP23017_GPIOB data
+              data←⍬
+          :EndIf
+      :EndWhile
+     
+        ⍝ If a poll-worthy instruction was issued, reconfigure D7
+        ⍝ pin as input to indicate need for polling on next call.
+      :If (~charmode)∧(value∊pollables)
+          ⎕←'Set Poll indicator'
+          DDRB←DDRB∨(0 0 0 0 0 0 1 0)
+          MCP.WriteBytes MCP23017_IODIRB(2⊥DDRB)
       :EndIf
      
       r←0
@@ -290,17 +330,17 @@
       :Implements Destructor
       ⎕←'Adafruit Char LCD Plate at address ',⍕MCP.DeviceAddress,'will be closed.'
      
-      ⍝ Puts the MCP23017 back in Bank 0 + sequential write mode
+        ⍝ Puts the MCP23017 back in Bank 0 + sequential write mode
       MCP.WriteBytes MCP23017_IOCON_BANK1(0)
      
-      ⍝ Turn off LEDs on the way out
+        ⍝ Turn off LEDs on the way out
       PortA←1 1 0 0 0 0 0 0
       PortB←0 0 0 0 0 0 0 1
 ⍝        sleep(0.0015)
      
-      ⍝ Brute force reload ALL registers to known state.
-      ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
-      ⍝ Assemble data block to write to MCP
+        ⍝ Brute force reload ALL registers to known state.
+        ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
+        ⍝ Assemble data block to write to MCP
       initdata←2⊥(0 0 1 1 1 1 1 1)   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
       initdata,←2⊥DDRB               ⍝ LCD       D7=input, Blue LED=output
       initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLA
@@ -323,11 +363,11 @@
       initdata,←2⊥PortB              ⍝ GPIOB
       initdata,←2⊥PortA              ⍝ OLATA
       initdata,←2⊥PortB              ⍝ OLATB
-      ⍝ Write init data to MCP
-      ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
+        ⍝ Write init data to MCP
+        ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
       MCP.WriteBytes 0(initdata)
      
-      ⍝ Deconstruct MCP23017 Insatance
+        ⍝ Deconstruct MCP23017 Insatance
       MCP←⍬
       r←0
     ∇
@@ -602,3 +642,4 @@
 ⍝                break
 
 :EndClass
+
