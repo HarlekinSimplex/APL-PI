@@ -80,6 +80,11 @@
     LCD_MOVERIGHT           ← 4   ⍝ 0x04
     LCD_MOVELEFT            ← 0   ⍝ 0x00
 
+    ⍝ Construct some display commands
+    Displayshift   ← (8⍴2⊤LCD_CURSORMOVE)∨(8⍴2⊤LCD_MOVERIGHT)
+    Displaymode    ← (8⍴2⊤LCD_ENTRYLEFT)∨(8⍴2⊤LCD_ENTRYSHIFTDECREMENT)
+    Displaycontrol ← (8⍴2⊤LCD_DISPLAYON)∨(8⍴2⊤LCD_CURSOROFF)∨(8⍴2⊤LCD_BLINKOFF)
+
     ⍝ Truncation constants for message function truncate parameter.
     NO_TRUNCATE             ← 0
     TRUNCATE                ← 1
@@ -114,7 +119,7 @@
       :Access Public
       make3 addr backlight 0     ⍝ Default debug off
     ∇
-    ∇ make3(addr backlight debug);c;displayshift;displaymode;displaycontrol
+    ∇ make3(addr backlight debug);c
       :Implements Constructor
       :Access Public
      
@@ -178,19 +183,14 @@
         ⍝ # operations must be broken down into single-byte calls.
       MCP.WriteBytes MCP23017_IOCON_BANK0(2⊥(1 0 1 0 0 0 0 0))
      
-        ⍝ Construct some display commands
-      displayshift←(8⍴2⊤LCD_CURSORMOVE)∨(8⍴2⊤LCD_MOVERIGHT)
-      displaymode←(8⍴2⊤LCD_ENTRYLEFT)∨(8⍴2⊤LCD_ENTRYSHIFTDECREMENT)
-      displaycontrol←(8⍴2⊤LCD_DISPLAYON)∨(8⍴2⊤LCD_CURSOROFF)∨(8⍴2⊤LCD_BLINKOFF)
-     
         ⍝ Initialize display
       WriteData 51  ⍝ 0x33 - Init
       WriteData 50  ⍝ 0x32 - Init
       WriteData 40  ⍝ 0x28 - 2 line 5x8 matrix
       WriteData 2⊥(8⍴2⊤LCD_CLEARDISPLAY)
-      WriteData 2⊥(8⍴2⊤LCD_CURSORSHIFT)∨displayshift
-      WriteData 2⊥(8⍴2⊤LCD_ENTRYMODESET)∨displaymode
-      WriteData 2⊥(8⍴2⊤LCD_DISPLAYCONTROL)∨displaycontrol
+      WriteData 2⊥(8⍴2⊤LCD_CURSORSHIFT)∨Displayshift
+      WriteData 2⊥(8⍴2⊤LCD_ENTRYMODESET)∨Displaymode
+      WriteData 2⊥(8⍴2⊤LCD_DISPLAYCONTROL)∨Displaycontrol
       WriteData 2⊥(8⍴2⊤LCD_RETURNHOME)
      
       ⎕←'Adafruit Char LCD Plate at address ',⍕addr,'with Debug',(('OFF' 'ON')[debug+1]),'and backlight b',(d2b backlight),' is alive.'
@@ -283,7 +283,7 @@
      
         ⍝ Convert values in value into boolean arrays of 8 bit
         ⍝ Resulting array will be processed by out4 (flip and hi/lo strobe)
-        ⍝ Finally remove enclosur and catenate the boolean arrays
+        ⍝ Finally remove enclosure and catenate the boolean arrays
         ⍝ 'data' now holds an array of bytes to be sent in chunks of 32 bytes
         ⍝ to MCP device
       data←,↑{out4 bitmask ⍵}¨{(8⍴2)⊤⍵}¨value
@@ -314,7 +314,7 @@
      
         ⍝ If a poll-worthy instruction was issued, reconfigure D7
         ⍝ pin as input to indicate need for polling on next call.
-      :If (~charmode)∧(value∊pollables)
+      :If (~charmode)∧(1↑value)∊pollables
           ⎕←'Set Poll indicator'
           DDRB←DDRB∨(0 0 0 0 0 0 1 0)
           MCP.WriteBytes MCP23017_IODIRB(2⊥DDRB)
@@ -380,67 +380,6 @@
       r←⍎exp
     ∇
 
-⍝      def __init__(self, busnum=-1, addr=0x20, debug=False, backlight=ON):
-⍝
-⍝        self.write(0x33) # Init
-⍝        self.write(0x32) # Init
-⍝        self.write(0x28) # 2 line 5x8 matrix
-⍝        self.write(self.LCD_CLEARDISPLAY)
-⍝        self.write(self.LCD_CURSORSHIFT    | self.displayshift)
-⍝        self.write(self.LCD_ENTRYMODESET   | self.displaymode)
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-⍝        self.write(self.LCD_RETURNHOME)
-⍝
-⍝
-⍝    # ----------------------------------------------------------------------
-⍝    # Write operations
-⍝
-⍝    # Write byte, list or string value to LCD
-⍝    def write(self, value, char_mode=False):
-⍝        """ Send command/data to LCD """
-⍝
-⍝        # If string or list, iterate through multiple write ops
-⍝        if isinstance(value, str):
-⍝            last = len(value) - 1 # Last character in string
-⍝            data = []             # Start with blank list
-⍝            for i, v in enumerate(value): # For each character...
-⍝                # Append 4 bytes to list representing PORTB over time.
-⍝                # First the high 4 data bits with strobe (enable) set
-⍝                # and unset, then same with low 4 data bits (strobe 1/0).
-⍝                data.extend(self.out4(bitmask, ord(v)))
-⍝                # I2C block data write is limited to 32 bytes max.
-⍝                # If limit reached, write data so far and clear.
-⍝                # Also do this on last byte if not otherwise handled.
-⍝                if (len(data) >= 32) or (i == last):
-⍝                    self.i2c.bus.write_i2c_block_data(
-⍝                      self.i2c.address, self.MCP23017_GPIOB, data)
-⍝                    self.portb = data[-1] # Save state of last byte out
-⍝                    data       = []       # Clear list for next iteration
-⍝        elif isinstance(value, list):
-⍝            # Same as above, but for list instead of string
-⍝            last = len(value) - 1
-⍝            data = []
-⍝            for i, v in enumerate(value):
-⍝                data.extend(self.out4(bitmask, v))
-⍝                if (len(data) >= 32) or (i == last):
-⍝                    self.i2c.bus.write_i2c_block_data(
-⍝                      self.i2c.address, self.MCP23017_GPIOB, data)
-⍝                    self.portb = data[-1]
-⍝                    data       = []
-⍝        else:
-⍝            # Single byte
-⍝            data = self.out4(bitmask, value)
-⍝            self.i2c.bus.write_i2c_block_data(
-⍝              self.i2c.address, self.MCP23017_GPIOB, data)
-⍝            self.portb = data[-1]
-⍝
-⍝        # If a poll-worthy instruction was issued, reconfigure D7
-⍝        # pin as input to indicate need for polling on next call.
-⍝        if (not char_mode) and (value in self.pollables):
-⍝            self.ddrb |= 0b00000010
-⍝            self.i2c.bus.write_byte_data(self.i2c.address,
-⍝              self.MCP23017_IODIRB, self.ddrb)
-⍝
 ⍝
 ⍝    # ----------------------------------------------------------------------
 ⍝    # Utility methods
@@ -466,12 +405,20 @@
 ⍝        self.write(self.LCD_SETDDRAMADDR | (col + self.row_offsets[row]))
 ⍝
 ⍝
-⍝    def display(self):
-⍝        """ Turn the display on (quickly) """
-⍝        self.displaycontrol |= self.LCD_DISPLAYON
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-⍝
-⍝
+    ⍝ Turn the display on (quickly)
+    ∇ r←DisplayOn
+      :Access Public
+      Displaycontrol∨←(8⍴2)⊤LCD_DISPLAYON
+      WriteData 2⊥Displaycontrol∨(8⍴2)⊤LCD_DISPLAYCONTROL
+    ∇
+
+    ⍝ Turn the display off (quickly)
+    ∇ r←DisplayOff
+      :Access Public
+      Displaycontrol∧←~(8⍴2)⊤LCD_DISPLAYON
+      WriteData 2⊥Displaycontrol∨(8⍴2)⊤LCD_DISPLAYCONTROL
+    ∇
+
 ⍝    def noDisplay(self):
 ⍝        """ Turn the display off (quickly) """
 ⍝        self.displaycontrol &= ~self.LCD_DISPLAYON
