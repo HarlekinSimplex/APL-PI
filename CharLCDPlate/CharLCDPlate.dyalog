@@ -123,8 +123,8 @@
       :Implements Constructor
       :Access Public
      
-        ⍝ Instatiate Port Expander
-      MCP←⎕NEW #.MCP23017(h2d'20')
+        ⍝ Instantiate Port Expander
+      MCP←⎕NEW #.MCP23017 32     ⍝ 0x20
      
         ⍝ I2C is relatively slow. MCP output port states are cached
         ⍝ so we don't need to constantly poll-and-change bit states.
@@ -149,7 +149,7 @@
         ⍝ Brute force reload ALL registers to known state.
         ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
         ⍝ Assemble data block to write to MCP
-      initdata←2⊥(0 0 1 1 1 1 1 1)   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
+      initdata←2⊥(0 0 1 1 1 1 1 1)  ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
       initdata,←2⊥DDRB               ⍝ LCD       D7=input, Blue LED=output
       initdata,←2⊥(0 0 1 1 1 1 1 1)  ⍝ IPOLA     Invert polarity on button inputs
       initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLB
@@ -184,9 +184,9 @@
       MCP.WriteBytes MCP23017_IOCON_BANK0(2⊥(1 0 1 0 0 0 0 0))
      
         ⍝ Initialize display
-      WriteData 51  ⍝ 0x33 - Init
-      WriteData 50  ⍝ 0x32 - Init
-      WriteData 40  ⍝ 0x28 - 2 line 5x8 matrix
+      WriteData 16⊥3 3  ⍝ 0x33 - Init
+      WriteData 16⊥3 2  ⍝ 0x32 - Init
+      WriteData 16⊥2 8  ⍝ 0x28 - 2 line 5x8 matrix
       WriteData 2⊥(8⍴2⊤LCD_CLEARDISPLAY)
       WriteData 2⊥(8⍴2⊤LCD_CURSORSHIFT)∨Displayshift
       WriteData 2⊥(8⍴2⊤LCD_ENTRYMODESET)∨Displaymode
@@ -419,22 +419,25 @@
       WriteData 2⊥Displaycontrol∨(8⍴2)⊤LCD_DISPLAYCONTROL
     ∇
 
-⍝    def noDisplay(self):
-⍝        """ Turn the display off (quickly) """
-⍝        self.displaycontrol &= ~self.LCD_DISPLAYON
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-⍝
-⍝
 ⍝    def cursor(self):
 ⍝        """ Underline cursor on """
 ⍝        self.displaycontrol |= self.LCD_CURSORON
 ⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-⍝
+    ∇ r←CursorOn
+      :Access Public
+      Displaycontrol∨←(8⍴2)⊤LCD_CURSORON
+      WriteData 2⊥Displaycontrol∨(8⍴2)⊤LCD_DISPLAYCONTROL
+    ∇
 ⍝
 ⍝    def noCursor(self):
 ⍝        """ Underline cursor off """
 ⍝        self.displaycontrol &= ~self.LCD_CURSORON
 ⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
+    ∇ r←CursorOff
+      :Access Public
+      Displaycontrol∧←~(8⍴2)⊤LCD_CURSORON
+      WriteData 2⊥Displaycontrol∨(8⍴2)⊤LCD_DISPLAYCONTROL
+    ∇
 ⍝
 ⍝
 ⍝    def ToggleCursor(self):
