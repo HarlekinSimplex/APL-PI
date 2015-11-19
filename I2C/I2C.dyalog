@@ -38,9 +38,9 @@
 
     ⍝ Get Pi Revision from /proc/cpuinfo
     ∇ r←getPiRevision;tie;cpuinfo;bin;rev
-        ⍝ Open cpuinfo and read 500 bytes
+        ⍝ Open file cpuinfo and read chars in 100 byte chunks until EOF
       tie←('/proc/','cpuinfo')⎕NTIE 0
-      cpuinfo←⎕NREAD tie 80 2000
+      cpuinfo←{r←⎕NREAD ⍵ 80 100 ⋄ 0=⍴r:r ⋄ r,∇ ⍵}tie
      
         ⍝ Partition into an array of strings
       bin←~cpuinfo∊⎕UCS 13 10
