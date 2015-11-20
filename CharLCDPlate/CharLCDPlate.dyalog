@@ -149,7 +149,7 @@
         ⍝ Brute force reload ALL registers to known state.
         ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
         ⍝ Assemble data block to write to MCP
-      initdata←2⊥(0 0 1 1 1 1 1 1)  ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
+      initdata←2⊥(0 0 1 1 1 1 1 1)   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
       initdata,←2⊥DDRB               ⍝ LCD       D7=input, Blue LED=output
       initdata,←2⊥(0 0 1 1 1 1 1 1)  ⍝ IPOLA     Invert polarity on button inputs
       initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLB
@@ -257,14 +257,14 @@
             ⍝ Poll LCD busy flag
           :Repeat
                 ⍝ Strobe high (enable)
-              MCP.SequentialWriteBytes(2⊥hi)
+              MCP.WriteBytes MCP23017_GPIOB(2⊥hi)
                 ⍝ First nybble contains busy state
-              funret bits funerr←MCP.SequentialReadBytes 0
+              funret bits funerr←MCP.ReadBytes MCP23017_GPIOB(0)
                 ⍝ Strobe low, high, low.  Second nybble (A3) is ignored.
               MCP.WriteBytes MCP23017_GPIOB(2⊥¨lo hi lo)
               PortB←lo
             ⍝ D7=0,not busy
-          :Until (8⍴0)≡(bits∧(0 0 0 0 0 0 1 0))
+          :Until (8⍴0)≡(((8⍴2)⊤bits)∧(0 0 0 0 0 0 1 0))
           ⎕←'Poll completed'
      
             ⍝  Polling complete, change D7 pin to output
@@ -336,7 +336,9 @@
         ⍝ Turn off LEDs on the way out
       PortA←1 1 0 0 0 0 0 0
       PortB←0 0 0 0 0 0 0 1
-⍝        sleep(0.0015)
+     
+        ⍝ Sleep 0.0015 sec
+      ⎕DL 0.0015
      
         ⍝ Brute force reload ALL registers to known state.
         ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
@@ -346,7 +348,7 @@
       initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLA
       initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLB
       initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENA  Disable interrupt-on-change
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENB
+      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENBDisplay
       initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALA
       initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALB
       initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCONA

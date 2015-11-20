@@ -41,12 +41,10 @@ int CloseI2C(int *err)
 
 /* Dyalog APL name associations
 
-    'WriteBytes'⎕NA'I libi2c-com.so|WriteBytes I <#U1 =I' ⍝ address, bytes[], err
-    'ReadBytes' ⎕NA'I libi2c-com.so|ReadBytes  I =#U1 =I' ⍝ address, bytes[], err
-    'WriteChar' ⎕NA'I libi2c-com.so|WriteBytes I <#C  =I' ⍝ address, bytes[], err
-    'ReadChar'  ⎕NA'I libi2c-com.so|ReadBytes  I =#C  =I' ⍝ address, bytes[], err
-⍝    'WriteArray'⎕NA'I libi2c-com.so|WriteBytes I <U1  =I' ⍝ address, bytes[], err
-⍝    'ReadArray' ⎕NA'I libi2c-com.so|ReadBytes  I =U1  =I' ⍝ address, bytes[], err
+    'WriteBytes'⎕NA'I libi2c-com.so|WriteBytes I <#U1 =I' ⍝ bus address, bytes[], err
+    'ReadBytes' ⎕NA'I libi2c-com.so|ReadBytes  I =#U1 =I' ⍝ bus address, bytes[], err
+    'WriteChar' ⎕NA'I libi2c-com.so|WriteBytes I <#C  =I' ⍝ bus address, bytes[], err
+    'ReadChar'  ⎕NA'I libi2c-com.so|ReadBytes  I =#C  =I' ⍝ bus address, bytes[], err
 */
 
 int WriteBytes(int address, unsigned char *bytes, int *err)
@@ -91,47 +89,4 @@ int ReadBytes(int address, unsigned char *bytes, int *err)
     }
 
     return 0;
-}
-
-/* Dyalog APL name associations
-
-      'APLTestWriteChar' ⎕NA'I libi2c-com.so|APLTestWrite <#C'
-      'APLTestWriteBytes'⎕NA'I libi2c-com.so|APLTestWrite <#U1'
-      'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  =#C'
-      'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  =#U1'
-*/
-
-int APLTestWrite(unsigned char *bytes)
-{
-    return sizeof(unsigned char) * bytes[0] ;
-}
-
-int APLTestRead(unsigned char *bytes)
-{
-    unsigned short len, len_given, i ;
-
-    // This does not work as it should when used with > as ⎕NA declaration
-    len_given = sizeof(unsigned char) * bytes[0] ;
-
-    // Set result array length to 10
-//    len = 10 ;
-    len = len_given ;
-
-    // This requires to call this function with at least 10 bytes als buffer size
-    //   APLTestReadChar 10
-    // or it needs to be declared like this:
-    //  'APLTestReadChar'  ⎕NA'I libi2c-com.so|APLTestRead  >#C[10]'
-    //  'APLTestReadBytes' ⎕NA'I libi2c-com.so|APLTestRead  >#U1[10]'
-    //
-    bytes[0] = len ;
-
-    // Do some dummy reading of 10 bytes
-    i = len ;
-    while(i>0)
-    {
-        bytes[ 1 + len-i] = (unsigned char)( 65 + len - i) ;
-        i-- ;
-    }
-
-    return len_given ;
 }

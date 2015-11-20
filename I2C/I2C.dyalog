@@ -26,9 +26,13 @@
       '_ReadBytes'⎕NA'I libi2c-com.so|ReadBytes I =#U1 =I'
       '_ReadChar'⎕NA'I libi2c-com.so|ReadBytes I =#C =I'
      
-        ⍝ Pi Revision 1 → BusID←0
+        ⍝ Pi Revision 0/1 → BusID←0
         ⍝ Pi Revision 2 → BusID←1
-      BusID←getPiRevision-1
+      :If getPiRevision<2
+          BusID←0
+      :Else
+          BusID←1
+      :EndIf
      
         ⍝ Open I2C bus
       r←OpenBus
@@ -47,10 +51,27 @@
       cpuinfo←↑bin{⎕ML←3 ⋄ ⍺⊂⍵}cpuinfo
      
         ⍝ Find 'Revison' entry and capture revison value
-      rev←((∨/[2]'Revision'⍷cpuinfo)/[1]cpuinfo)[1;12 13 14 15]
+        ⍝ Find, cut and tdiy up Revison Entry
+      rev←,(∨/[2]'Revision'⍷cpuinfo)/[1]cpuinfo
      
-        ⍝ For revision values 0,2,3 →Rev1=0 ; else →Rev2=1
-      r←1+~∨/(⊂rev)≡¨('0000' '0002' '0003')  ⍝ buggy; see adafruit i2c
+        ⍝ Check if Revison was found
+      :If 0=⍴rev
+            ⍝ Return Revision 0
+          r←0
+      :Else
+            ⍝ Clean up and extract Revison Entry
+          rev←(~rev∊' '(⎕UCS 9))/rev
+          rev←1↓⊃(rev=':')⊂rev
+     
+            ⍝ Check Revision
+          :If ∨/(⊂rev)≡¨('0000' '0002' '0003')
+                ⍝ If RevisionID=0/2/3 return Revision 1
+              r←1
+          :Else
+                ⍝ Return Revision 2
+              r←2
+          :EndIf
+      :EndIf
     ∇
 
     ⍝ Retriev actual I2C bus ID 
@@ -88,35 +109,19 @@
     ⍝ Read / Write data from / to I2C bus
     ⍝ Wrapper for I2C interface lib calls
     ⍝ Write
-    ∇ r←SequentialWriteBytes(device buffer)
-      :Access Public
-      r←_WriteBytes(1↑∊device)(∊buffer)0
-    ∇
     ∇ r←WriteBytes(device register buffer)
       :Access Public
       r←_WriteBytes(1↑∊device)(∊register,buffer)0
-    ∇
-    ∇ r←SequentialWriteChar(device buffer)
-      :Access Public
-      r←_WriteChar(1↑∊device)(∊buffer)0
     ∇
     ∇ r←WriteChar(device register buffer)
       :Access Public
       r←_WriteChar(1↑∊device)(∊register,buffer)0
     ∇
     ⍝ Read
-    ∇ r←SequentialReadBytes(device buffer)
-      :Access Public
-      r←_ReadBytes(1↑∊device)(∊buffer)0
-    ∇
     ∇ r←ReadBytes(device register buffer)
       :Access Public
       r←_WriteBytes(1↑∊device)(∊register)0
       r←_ReadBytes(1↑∊device)(∊buffer)0
-    ∇
-    ∇ r←SequentialReadChar(device buffer)
-      :Access Public
-      r←_ReadChar(1↑∊device)(∊buffer)0
     ∇
     ∇ r←ReadChar(device register buffer)
       :Access Public
