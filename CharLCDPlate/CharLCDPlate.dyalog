@@ -11,14 +11,22 @@
     ⍝ Tools
     ⍝
     ⍝ Hex/Boolean Tools
-    x2d ←{⍺⊥('0123456789ABCDEF'⍳⍵)-1}             ⍝ Converts a ⍺ based string to a decimal
-    h2d ←{16x2d⍵}                                 ⍝ Converts a hex string to a decimal
-    b2d ←{2x2d⍵}                                  ⍝ Converts a boolean string to a decimal
-    d2x ←{'0123456789ABCDEF'[1+(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵]} ⍝ Converts a decimal to a ⍺ based string
-    d2h ←{16d2x⍵}                                 ⍝ Converts a decimal to a hex string
-    d2b ←{2d2x⍵}                                  ⍝ Converts a decimal to a boolean string
-    d2xA←{(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵}                       ⍝ Converts a decimal to a ⍺ based array
-    d2bA←{2d2xA⍵}                                 ⍝ Converts a decimal to a boolean array
+    ⍝ used
+    x2d    ←{⍺⊥(('0123456789',⎕A)⍳⍵)-1}             ⍝ Converts a ⍺ based string to a decimal
+    h2d    ←{16x2d⍵}                                ⍝ Converts a hex string to a decimal
+    b2d    ←{2x2d⍵}                                 ⍝ Converts a boolean string to a decimal
+    b8OR   ←{2⊥((8⍴2)⊤⍺)∨(8⍴2)⊤⍵}                   ⍝ Boolean OR  (8 bit)
+    b8AND  ←{2⊥((8⍴2)⊤⍺)∧(8⍴2)⊤⍵}                   ⍝ Boolean AND (8 bit)
+    b8NOT  ←{2⊥(~(8⍴2)⊤⍵)}                          ⍝ Boolean NOT (8 bit) 
+    b8LEFT ←{2⊥⍺⌽(8⍴2)⊤⍵}                           ⍝ Boolean Shift Left (8 bit)
+    b8RIGHT←{2⊥(-⍺)⌽(8⍴2)⊤⍵}                        ⍝ Boolean Shif Right (8 bit)
+
+    ⍝ not used yet
+    d2x    ←{('0123456789',⎕A)[1+(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵]} ⍝ Converts a decimal to a ⍺ based string
+    d2h    ←{16d2x⍵}                                ⍝ Converts a decimal to a hex string
+    d2b    ←{2d2x⍵}                                 ⍝ Converts a decimal to a boolean string
+    d2xA   ←{(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵}                      ⍝ Converts a decimal to a ⍺ based array
+    d2bA   ←{2d2xA⍵}                                ⍝ Converts a decimal to a boolean array
 
     ⍝ ----------------------------------------------------------------------
     ⍝ Constants
@@ -81,9 +89,9 @@
     LCD_MOVELEFT            ← 0   ⍝ 0x00
 
     ⍝ Construct some display commands
-    Displayshift   ← (8⍴2⊤LCD_CURSORMOVE)∨(8⍴2⊤LCD_MOVERIGHT)
-    Displaymode    ← (8⍴2⊤LCD_ENTRYLEFT)∨(8⍴2⊤LCD_ENTRYSHIFTDECREMENT)
-    Displaycontrol ← (8⍴2⊤LCD_DISPLAYON)∨(8⍴2⊤LCD_CURSOROFF)∨(8⍴2⊤LCD_BLINKOFF)
+    Displayshift            ← LCD_CURSORMOVE b8OR LCD_MOVERIGHT
+    Displaymode             ← LCD_ENTRYLEFT  b8OR LCD_ENTRYSHIFTDECREMENT
+    Displaycontrol          ← LCD_DISPLAYON  b8OR LCD_CURSOROFF b8OR LCD_BLINKOFF
 
     ⍝ Truncation constants for message function truncate parameter.
     NO_TRUNCATE             ← 0
@@ -119,25 +127,25 @@
       :Access Public
       make3 addr backlight 0     ⍝ Default debug off
     ∇
-    ∇ make3(addr backlight debug);c
+    ∇ make3(addr backlight debug);c;initdata
       :Implements Constructor
       :Access Public
      
         ⍝ Instantiate Port Expander
-      MCP←⎕NEW #.MCP23017 32     ⍝ 0x20
+      MCP←⎕NEW #.MCP23017 addr
      
         ⍝ I2C is relatively slow. MCP output port states are cached
         ⍝ so we don't need to constantly poll-and-change bit states.
-      PortA PortB DDRB←(8⍴0)(8⍴0)(0 0 0 0 0 0 1 0)
+      PortA PortB DDRB←0 0(h2d'02')
      
         ⍝ Set initial backlight color as 8 bit boolean array
         ⍝ to the inverse of the default ON
-      c←~8⍴2⊤backlight
+      c←b8NOT backlight
         ⍝ Post backlight value to output register cache
         ⍝ Color Bit 0 and 1 are connected to PortA Bit 6 and 7
         ⍝ Color Bit 2 is connected to PortB Bit 0
-      PortA←(PortA∧(0 0 1 1 1 1 1 1))∨(¯2⌽c∧(0 0 0 0 0 0 1 1))
-      PortB←(PortB∧(1 1 1 1 1 1 1 0))∨(¯2⌽c∧(0 0 0 0 0 1 0 0))
+      PortA←(PortA b8AND(b2d'00111111'))b8OR(2 b8RIGHT(c b8AND(b2d'0000011')))
+      PortB←(PortB b8AND(b2d'11111110'))b8OR(2 b8RIGHT(c b8AND(b2d'0000100')))
      
         ⍝ Set MCP23017 IOCON register to Bank 0 with sequential operation.
         ⍝ If chip is already set for Bank 0, this will just write to OLATB
@@ -149,28 +157,28 @@
         ⍝ Brute force reload ALL registers to known state.
         ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
         ⍝ Assemble data block to write to MCP
-      initdata←2⊥(0 0 1 1 1 1 1 1)   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
-      initdata,←2⊥DDRB               ⍝ LCD       D7=input, Blue LED=output
-      initdata,←2⊥(0 0 1 1 1 1 1 1)  ⍝ IPOLA     Invert polarity on button inputs
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENA  Disable interrupt-on-change
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALA
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCONA
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCONB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IOCON
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IOCON
-      initdata,←2⊥(0 0 1 1 1 1 1 1)  ⍝ GPPUA     Enable pull-ups on buttons
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPPUB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTFA
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTFB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCAPA
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCAPB
-      initdata,←2⊥PortA              ⍝ GPIOA
-      initdata,←2⊥PortB              ⍝ GPIOB
-      initdata,←2⊥PortA              ⍝ OLATA
-      initdata,←2⊥PortB              ⍝ OLATB
+      initdata←b2d'00111111'   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
+      initdata,←DDRB           ⍝ LCD       D7=input, Blue LED=output
+      initdata,←b2d'00111111'  ⍝ IPOLA     Invert polarity on button inputs
+      initdata,←b2d'00000000'  ⍝ IPOLB
+      initdata,←b2d'00000000'  ⍝ GPINTENA  Disable interrupt-on-change
+      initdata,←b2d'00000000'  ⍝ GPINTENB
+      initdata,←b2d'00000000'  ⍝ DEFVALA
+      initdata,←b2d'00000000'  ⍝ DEFVALB
+      initdata,←b2d'00000000'  ⍝ INTCONA
+      initdata,←b2d'00000000'  ⍝ INTCONB
+      initdata,←b2d'00000000'  ⍝ IOCON
+      initdata,←b2d'00000000'  ⍝ IOCON
+      initdata,←b2d'00111111'  ⍝ GPPUA     Enable pull-ups on buttons
+      initdata,←b2d'00000000'  ⍝ GPPUB
+      initdata,←b2d'00000000'  ⍝ INTFA
+      initdata,←b2d'00000000'  ⍝ INTFB
+      initdata,←b2d'00000000'  ⍝ INTCAPA
+      initdata,←b2d'00000000'  ⍝ INTCAPB
+      initdata,←PortA          ⍝ GPIOA
+      initdata,←PortB          ⍝ GPIOB
+      initdata,←PortA          ⍝ OLATA
+      initdata,←PortB          ⍝ OLATB
         ⍝ Write init data to MCP
         ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
       MCP.WriteBytes 0(initdata)
@@ -181,19 +189,19 @@
         ⍝ at the start of the class.  Also, the address register will no
         ⍝ longer increment automatically after this -- multi-byte
         ⍝ # operations must be broken down into single-byte calls.
-      MCP.WriteBytes MCP23017_IOCON_BANK0(2⊥(1 0 1 0 0 0 0 0))
+      MCP.WriteBytes MCP23017_IOCON_BANK0(b2d'10100000')
      
         ⍝ Initialize display
-      WriteData 16⊥3 3  ⍝ 0x33 - Init
-      WriteData 16⊥3 2  ⍝ 0x32 - Init
-      WriteData 16⊥2 8  ⍝ 0x28 - 2 line 5x8 matrix
-      WriteData 2⊥(8⍴2⊤LCD_CLEARDISPLAY)
-      WriteData 2⊥(8⍴2⊤LCD_CURSORSHIFT)∨Displayshift
-      WriteData 2⊥(8⍴2⊤LCD_ENTRYMODESET)∨Displaymode
-      WriteData 2⊥(8⍴2⊤LCD_DISPLAYCONTROL)∨Displaycontrol
-      WriteData 2⊥(8⍴2⊤LCD_RETURNHOME)
+      WriteData h2d'33'            ⍝ 0x33 - Init
+      WriteData h2d'32'            ⍝ 0x32 - Init
+      WriteData h2d'28'            ⍝ 0x28 - 2 line 5x8 matrix
+      WriteData LCD_CLEARDISPLAY
+      WriteData LCD_CURSORSHIFT b8OR Displayshift
+      WriteData LCD_ENTRYMODESET b8OR Displaymode
+      WriteData LCD_DISPLAYCONTROL b8OR Displaycontrol
+      WriteData LCD_RETURNHOME
      
-      ⎕←'Adafruit Char LCD Plate at address ',⍕addr,'with Debug',(('OFF' 'ON')[debug+1]),'and backlight b',(d2b backlight),' is alive.'
+      ⎕←'Adafruit Char LCD Plate at address ',⍕addr,'with Debug',(('OFF' 'ON')[debug+1]),'and backlight b',⍕backlight,' is alive.'
     ∇
 
     ⍝ ----------------------------------------------------------------------
@@ -205,19 +213,19 @@
     ⍝ won't work. This table remaps 4-bit data values to MCP PORTB
     ⍝ outputs, incorporating both the reverse and shift.
     ⍝ Usage: flip[1+2⊥ _bAarray2flip_ ]
-    flip ←(0 0 0 0 0 0 0 0)(0 0 0 1 0 0 0 0)(0 0 0 0 1 0 0 0)(0 0 0 1 1 0 0 0)
-    flip,←(0 0 0 0 0 1 0 0)(0 0 0 1 0 1 0 0)(0 0 0 0 1 1 0 0)(0 0 0 1 1 1 0 0)
-    flip,←(0 0 0 0 0 0 1 0)(0 0 0 1 0 0 1 0)(0 0 0 0 1 0 1 0)(0 0 0 1 1 0 1 0)
-    flip,←(0 0 0 0 0 1 1 0)(0 0 0 1 0 1 1 0)(0 0 0 0 1 1 1 0)(0 0 0 1 1 1 1 0) 
+    flip ←(b2d'00000000')(b2d'00010000')(b2d'00001000')(b2d'00011000')
+    flip,←(b2d'00000100')(b2d'00010100')(b2d'00001100')(b2d'00011100')
+    flip,←(b2d'00000010')(b2d'00010010')(b2d'00001010')(b2d'00011010')
+    flip,←(b2d'00000110')(b2d'00010110')(b2d'00001110')(b2d'00011110') 
 
     ⍝ Low-level 4-bit interface for LCD output.  This doesn't actually
     ⍝ write data, just returns an array of boolean arrays of the PORTB state over time.
     ⍝ Can concatenate the output of multiple calls (up to 8) for more
     ⍝ efficient batch write.
     ∇ r←out4(bitmask value);lo;hi
-      hi←bitmask∨⊃flip[1+2⊥(1 1 1 1 0 0 0 0)/value]
-      lo←bitmask∨⊃flip[1+2⊥(0 0 0 0 1 1 1 1)/value]
-      r←(hi∨(0 0 1 0 0 0 0 0))hi(lo∨(0 0 1 0 0 0 0 0))lo
+      hi←bitmask b8OR flip[1+(h2d'0F')b8AND 4 b8RIGHT value]
+      lo←bitmask b8OR flip[1+(h2d'0F')b8AND value]
+      r←(hi b8OR b2d'00100000')hi(lo b8OR b2d'00100000')lo
     ∇
 
     ⍝ The speed of LCD accesses is inherently limited by I2C through the
@@ -245,54 +253,50 @@
     ∇ r←Write(value charmode);lo;hi;funret;funval;funerr;bits;data
         ⍝ Busy Flag Poll
         ⍝ If pin D7 is in input state, poll LCD busy flag until clear.
-      :If (8⍴0)≢(DDRB∧(0 0 0 0 0 0 1 0))
+      :If 0≢(DDRB b8AND b2d'00000010')
           ⎕←'Initiate Busy Flag Poll'
             ⍝ Preserve Blue LED pin
-          lo←(PortB∧(0 0 0 0 0 0 0 1))∨(0 1 0 0 0 0 0 0)
+          lo←(PortB b8AND(b2d'00000001'))b8OR(b2d'01000000')
             ⍝ E=1 (strobe)
-          hi←lo∨(0 0 1 0 0 0 0 0)
+          hi←lo b8OR(b2d'00100000')
             ⍝ Write
-          MCP.WriteBytes MCP23017_GPIOB(2⊥lo)
+          MCP.WriteBytes MCP23017_GPIOB(lo)
      
             ⍝ Poll LCD busy flag
           :Repeat
                 ⍝ Strobe high (enable)
-              MCP.WriteBytes MCP23017_GPIOB(2⊥hi)
+              MCP.WriteBytes MCP23017_GPIOB(hi)
                 ⍝ First nybble contains busy state
               funret bits funerr←MCP.ReadBytes MCP23017_GPIOB(0)
                 ⍝ Strobe low, high, low.  Second nybble (A3) is ignored.
-              MCP.WriteBytes MCP23017_GPIOB(2⊥¨lo hi lo)
+              MCP.WriteBytes MCP23017_GPIOB(lo hi lo)
               PortB←lo
             ⍝ D7=0,not busy
-          :Until (8⍴0)≡(((8⍴2)⊤bits)∧(0 0 0 0 0 0 1 0))
+          :Until 0≡(bits b8AND(b2d'00000010'))
           ⎕←'Poll completed'
      
             ⍝  Polling complete, change D7 pin to output
-          DDRB←DDRB∧(1 1 1 1 1 1 0 1)
-          MCP.WriteBytes MCP23017_IODIRB(2⊥DDRB)
+          DDRB←DDRB b8AND(b2d'11111101')
+          MCP.WriteBytes MCP23017_IODIRB(DDRB)
       :Else
           ⎕←'No Poll required'
       :EndIf
      
         ⍝ Mask out PORTB LCD control bits
-      bitmask←PortB∧(0 0 0 0 0 0 0 1)
+      bitmask←PortB b8AND(b2d'00000001')
       :If charmode
             ⍝ Set data bit if not a command
-          bitmask←bitmask∨(1 0 0 0 0 0 0 0)
+          bitmask←bitmask b8OR(b2d'10000000')
       :EndIf
      
-        ⍝ Convert values in value into boolean arrays of 8 bit
-        ⍝ Resulting array will be processed by out4 (flip and hi/lo strobe)
+        ⍝ Values will be processed by out4 (flip and hi/lo strobe)
         ⍝ Finally remove enclosure and catenate the boolean arrays
         ⍝ 'data' now holds an array of bytes to be sent in chunks of 32 bytes
         ⍝ to MCP device
-      data←,↑{out4 bitmask ⍵}¨{(8⍴2)⊤⍵}¨value
+      data←,↑{out4 bitmask ⍵}¨value
      
         ⍝ Set PortB to last byte that will be send
       PortB←⊃¯1↑data
-     
-        ⍝ Decode data to decimal
-      data←2⊥¨data
      
         ⍝ Write data split into 32 bytes chunks
         ⍝ Loop runs as long as there are data bytes to send
@@ -316,8 +320,8 @@
         ⍝ pin as input to indicate need for polling on next call.
       :If (~charmode)∧(1↑value)∊pollables
           ⎕←'Set Poll indicator'
-          DDRB←DDRB∨(0 0 0 0 0 0 1 0)
-          MCP.WriteBytes MCP23017_IODIRB(2⊥DDRB)
+          DDRB←DDRB b8OR(b2d'00000010')
+          MCP.WriteBytes MCP23017_IODIRB(DDRB)
       :EndIf
      
       r←0
@@ -326,7 +330,7 @@
     ⍝ ----------------------------------------------------------------------
     ⍝ Destructor
     ⍝
-    ∇ close;r
+    ∇ close;r;initdata
       :Implements Destructor
       ⎕←'Adafruit Char LCD Plate at address ',⍕MCP.DeviceAddress,'will be closed.'
      
@@ -334,8 +338,8 @@
       MCP.WriteBytes MCP23017_IOCON_BANK1(0)
      
         ⍝ Turn off LEDs on the way out
-      PortA←1 1 0 0 0 0 0 0
-      PortB←0 0 0 0 0 0 0 1
+      PortA←b2d'11000000'
+      PortB←b2d'00000001'
      
         ⍝ Sleep 0.0015 sec
       ⎕DL 0.0015
@@ -343,28 +347,28 @@
         ⍝ Brute force reload ALL registers to known state.
         ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
         ⍝ Assemble data block to write to MCP
-      initdata←2⊥(0 0 1 1 1 1 1 1)   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
-      initdata,←2⊥DDRB               ⍝ LCD       D7=input, Blue LED=output
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLA
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IPOLB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENA  Disable interrupt-on-change
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPINTENBDisplay
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALA
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ DEFVALB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCONA
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCONB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IOCON
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ IOCON
-      initdata,←2⊥(0 0 1 1 1 1 1 1)  ⍝ GPPUA     Enable pull-ups on buttons
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ GPPUB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTFA
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTFB
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCAPA
-      initdata,←2⊥(0 0 0 0 0 0 0 0)  ⍝ INTCAPB
-      initdata,←2⊥PortA              ⍝ GPIOA
-      initdata,←2⊥PortB              ⍝ GPIOB
-      initdata,←2⊥PortA              ⍝ OLATA
-      initdata,←2⊥PortB              ⍝ OLATB
+      initdata←b2d'00111111'   ⍝ IODIRA    R+G LEDs=outputs, buttons=inputs
+      initdata,←DDRB           ⍝ LCD       D7=input, Blue LED=output
+      initdata,←b2d'00111111'  ⍝ IPOLA     Invert polarity on button inputs
+      initdata,←b2d'00000000'  ⍝ IPOLB
+      initdata,←b2d'00000000'  ⍝ GPINTENA  Disable interrupt-on-change
+      initdata,←b2d'00000000'  ⍝ GPINTENB
+      initdata,←b2d'00000000'  ⍝ DEFVALA
+      initdata,←b2d'00000000'  ⍝ DEFVALB
+      initdata,←b2d'00000000'  ⍝ INTCONA
+      initdata,←b2d'00000000'  ⍝ INTCONB
+      initdata,←b2d'00000000'  ⍝ IOCON
+      initdata,←b2d'00000000'  ⍝ IOCON
+      initdata,←b2d'00111111'  ⍝ GPPUA     Enable pull-ups on buttons
+      initdata,←b2d'00000000'  ⍝ GPPUB
+      initdata,←b2d'00000000'  ⍝ INTFA
+      initdata,←b2d'00000000'  ⍝ INTFB
+      initdata,←b2d'00000000'  ⍝ INTCAPA
+      initdata,←b2d'00000000'  ⍝ INTCAPB
+      initdata,←PortA          ⍝ GPIOA
+      initdata,←PortB          ⍝ GPIOB
+      initdata,←PortA          ⍝ OLATA
+      initdata,←PortB          ⍝ OLATB
         ⍝ Write init data to MCP
         ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
       MCP.WriteBytes 0(initdata)
@@ -377,7 +381,7 @@
     ⍝ ----------------------------------------------------------------------
     ⍝ Debug utility (shall be commented out when not in use)
     ⍝
-    ∇ r←debug exp
+    ∇ r←Debug exp
       :Access Public
       r←⍎exp
     ∇
@@ -410,15 +414,15 @@
     ⍝ Turn the display on (quickly)
     ∇ r←DisplayOn
       :Access Public
-      Displaycontrol∨←(8⍴2)⊤LCD_DISPLAYON
-      WriteData 2⊥Displaycontrol∨(8⍴2)⊤LCD_DISPLAYCONTROL
+      Displaycontrol←Displaycontrol b8OR LCD_DISPLAYON
+      WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
     ∇
 
     ⍝ Turn the display off (quickly)
     ∇ r←DisplayOff
       :Access Public
-      Displaycontrol∧←~(8⍴2)⊤LCD_DISPLAYON
-      WriteData 2⊥Displaycontrol∨(8⍴2)⊤LCD_DISPLAYCONTROL
+      Displaycontrol←Displaycontrol b8AND b8NOT LCD_DISPLAYON
+      WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
     ∇
 
 ⍝    def cursor(self):
@@ -427,8 +431,8 @@
 ⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
     ∇ r←CursorOn
       :Access Public
-      Displaycontrol∨←(8⍴2)⊤LCD_CURSORON
-      WriteData 2⊥Displaycontrol∨(8⍴2)⊤LCD_DISPLAYCONTROL
+      Displaycontrol←Displaycontrol b8OR LCD_CURSORON
+      WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
     ∇
 ⍝
 ⍝    def noCursor(self):
@@ -437,8 +441,8 @@
 ⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
     ∇ r←CursorOff
       :Access Public
-      Displaycontrol∧←~(8⍴2)⊤LCD_CURSORON
-      WriteData 2⊥Displaycontrol∨(8⍴2)⊤LCD_DISPLAYCONTROL
+      Displaycontrol←Displaycontrol b8AND b8NOT LCD_CURSORON
+      WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
     ∇
 ⍝
 ⍝
@@ -537,6 +541,20 @@
 ⍝          self.i2c.address, self.MCP23017_GPIOA, self.porta)
 ⍝        self.i2c.bus.write_byte_data(
 ⍝          self.i2c.address, self.MCP23017_GPIOB, self.portb)
+    ∇ r←Backlight color;c;funret1;funval1;funerr1;funret2;funval2;funerr2
+      :Access Public
+      c←b8NOT color
+        ⍝ Post backlight value to output register cache
+        ⍝ Color Bit 0 and 1 are connected to PortA Bit 6 and 7
+        ⍝ Color Bit 2 is connected to PortB Bit 0
+      PortA←(PortA b8AND(b2d'00111111'))b8OR(2 b8RIGHT(c b8AND(b2d'0000011')))
+      PortB←(PortB b8AND(b2d'11111110'))b8OR(2 b8RIGHT(c b8AND(b2d'0000100')))
+     
+      funret1 funval1 funerr1←MCP.WriteBytes MCP23017_GPIOA(2⊥PortA)
+      funret2 funval2 funerr2←MCP.WriteBytes MCP23017_GPIOB(2⊥PortB)
+      r←(funret1 funval1 funerr1)(funret2 funval2 funerr2)
+    ∇
+
 ⍝
 ⍝
 ⍝    # Read state of single button
