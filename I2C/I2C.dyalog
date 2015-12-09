@@ -5,6 +5,11 @@
     ⍝ Set environment
     ⎕IO←⎕ML←1
 
+    ⍝ ----------------------------------------------------------------------
+    ⍝ Debug
+    DEBUG ← 0            ⍝ Debug Flag Off:0 On:1
+    _LOG←{DEBUG:1 ⎕←⍵}   ⍝ Console log output if DEBUG
+
     ⍝ Member objects
     :Field Opened ← 0 
     :Field BusID  ← 1    ⍝ Default BusID (should be derived from PI version)
@@ -37,7 +42,7 @@
         ⍝ Open I2C bus
       r←OpenBus
      
-      ⎕←'I2C Bus with ID=',⍕BusID,'is now alive.'
+      _LOG'I2C Bus with ID=',⍕BusID,'is now alive.'
     ∇
 
     ⍝ Get Pi Revision from /proc/cpuinfo
@@ -132,7 +137,7 @@
     ⍝ Destructor method
     ∇ close;r
       :Implements Destructor
-      ⎕←'I2C Bus with ID=',⍕BusID,'will be closed.'
+      _LOG'I2C Bus with ID=',⍕BusID,'will be closed.'
       ⍝ Close I2C bus
       :If Opened
           r←CloseBus

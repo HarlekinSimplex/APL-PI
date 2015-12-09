@@ -8,6 +8,11 @@
     ⎕IO←⎕ML←1
 
     ⍝ ----------------------------------------------------------------------
+    ⍝ Debug
+    DEBUG ← 0            ⍝ Debug Flag Off:0 On:1
+    _LOG←{DEBUG:1 ⎕←⍵}   ⍝ Console log output if DEBUG
+
+    ⍝ ----------------------------------------------------------------------
     ⍝ Tools
     ⍝
     ⍝ Hex/Boolean Tools
@@ -99,7 +104,7 @@
     TRUNCATE_ELLIPSIS       ← 2
 
     ⍝ Line addresses for up to 4 line displays.  Maps line number to DDRAM address for line.
-    LINE_ADDRESSES          ← (h2d'C0')(h2d'94')(h2d'D4')
+    LINE_ADDRESSES          ← (h2d'00')(h2d'C0')(h2d'94')(h2d'D4')
 
     ⍝ ----------------------------------------------------------------------
     ⍝ Fields
@@ -152,7 +157,7 @@
         ⍝ which won't seriously bother anything on the plate right now
         ⍝ (blue backlight LED will come on, but that's done in the next
         ⍝ step anyway).
-      MCP.WriteBytes MCP23017_IOCON_BANK1(0)
+      _LOG MCP.WriteBytes MCP23017_IOCON_BANK1(0)
      
         ⍝ Brute force reload ALL registers to known state.
         ⍝ This also sets up all the input pins, pull-ups, etc. for the Pi Plate.
@@ -181,7 +186,7 @@
       initdata,←PortB          ⍝ OLATB
         ⍝ Write init data to MCP
         ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
-      MCP.WriteBytes 0(initdata)
+      _LOG MCP.WriteBytes 0(initdata)
      
         ⍝ Switch to Bank 1 and disable sequential operation.
         ⍝ From this point forward, the register addresses do NOT match
@@ -189,19 +194,19 @@
         ⍝ at the start of the class.  Also, the address register will no
         ⍝ longer increment automatically after this -- multi-byte
         ⍝ # operations must be broken down into single-byte calls.
-      MCP.WriteBytes MCP23017_IOCON_BANK0(b2d'10100000')
+      _LOG MCP.WriteBytes MCP23017_IOCON_BANK0(b2d'10100000')
      
         ⍝ Initialize display
-      WriteData h2d'33'            ⍝ 0x33 - Init
-      WriteData h2d'32'            ⍝ 0x32 - Init
-      WriteData h2d'28'            ⍝ 0x28 - 2 line 5x8 matrix
-      WriteData LCD_CLEARDISPLAY
-      WriteData LCD_CURSORSHIFT b8OR Displayshift
-      WriteData LCD_ENTRYMODESET b8OR Displaymode
-      WriteData LCD_DISPLAYCONTROL b8OR Displaycontrol
-      WriteData LCD_RETURNHOME
+      _LOG WriteData h2d'33'            ⍝ 0x33 - Init
+      _LOG WriteData h2d'32'            ⍝ 0x32 - Init
+      _LOG WriteData h2d'28'            ⍝ 0x28 - 2 line 5x8 matrix
+      _LOG WriteData LCD_CLEARDISPLAY
+      _LOG WriteData LCD_CURSORSHIFT b8OR Displayshift
+      _LOG WriteData LCD_ENTRYMODESET b8OR Displaymode
+      _LOG WriteData LCD_DISPLAYCONTROL b8OR Displaycontrol
+      _LOG WriteData LCD_RETURNHOME
      
-      ⎕←'Adafruit Char LCD Plate at address ',⍕addr,'with Debug',(('OFF' 'ON')[debug+1]),'and backlight b',⍕backlight,' is alive.'
+      _LOG'Adafruit Char LCD Plate at address ',⍕addr,'with Debug',(('OFF' 'ON')[debug+1]),'and backlight b',⍕backlight,' is alive.'
     ∇
 
     ⍝ ----------------------------------------------------------------------
@@ -254,32 +259,32 @@
         ⍝ Busy Flag Poll
         ⍝ If pin D7 is in input state, poll LCD busy flag until clear.
       :If 0≢(DDRB b8AND b2d'00000010')
-          ⎕←'Initiate Busy Flag Poll'
+          _LOG'Initiate Busy Flag Poll'
             ⍝ Preserve Blue LED pin
           lo←(PortB b8AND(b2d'00000001'))b8OR(b2d'01000000')
             ⍝ E=1 (strobe)
           hi←lo b8OR(b2d'00100000')
             ⍝ Write
-          MCP.WriteBytes MCP23017_GPIOB(lo)
+          _LOG MCP.WriteBytes MCP23017_GPIOB(lo)
      
             ⍝ Poll LCD busy flag
           :Repeat
                 ⍝ Strobe high (enable)
-              MCP.WriteBytes MCP23017_GPIOB(hi)
+              _LOG MCP.WriteBytes MCP23017_GPIOB(hi)
                 ⍝ First nybble contains busy state
               funret bits funerr←MCP.ReadBytes MCP23017_GPIOB(0)
                 ⍝ Strobe low, high, low.  Second nybble (A3) is ignored.
-              MCP.WriteBytes MCP23017_GPIOB(lo hi lo)
+              _LOG MCP.WriteBytes MCP23017_GPIOB(lo hi lo)
               PortB←lo
             ⍝ D7=0,not busy
           :Until 0≡(bits b8AND(b2d'00000010'))
-          ⎕←'Poll completed'
+          _LOG'Poll completed'
      
             ⍝  Polling complete, change D7 pin to output
           DDRB←DDRB b8AND(b2d'11111101')
-          MCP.WriteBytes MCP23017_IODIRB(DDRB)
+          _LOG MCP.WriteBytes MCP23017_IODIRB(DDRB)
       :Else
-          ⎕←'No Poll required'
+          _LOG'No Poll required'
       :EndIf
      
         ⍝ Mask out PORTB LCD control bits
@@ -287,6 +292,9 @@
       :If charmode
             ⍝ Set data bit if not a command
           bitmask←bitmask b8OR(b2d'10000000')
+            ⍝ Convert string into value array
+            ⍝ value←¯1+⎕AV⍳value
+          value←'UTF-8'⎕UCS value
       :EndIf
      
         ⍝ Values will be processed by out4 (flip and hi/lo strobe)
@@ -304,14 +312,14 @@
             ⍝ Check if we still have 32 or more bytes left
           :If (⍴data)≥32
                 ⍝ Send 32 bytes and drop them from queue afterwards
-              ⎕←'Send 32 bytes'
-              MCP.WriteBytes MCP23017_GPIOB(32↑data)
+              _LOG'Send 32 bytes'
+              _LOG MCP.WriteBytes MCP23017_GPIOB(32↑data)
               data←32↓data
           :Else
                 ⍝ Last chunk is less then 32 bytes
                 ⍝ Send and drop them after send
-              ⎕←'Send ',(⍕⍴data),' bytes'
-              MCP.WriteBytes MCP23017_GPIOB data
+              _LOG'Send ',(⍕⍴data),' bytes'
+              _LOG MCP.WriteBytes MCP23017_GPIOB data
               data←⍬
           :EndIf
       :EndWhile
@@ -319,9 +327,9 @@
         ⍝ If a poll-worthy instruction was issued, reconfigure D7
         ⍝ pin as input to indicate need for polling on next call.
       :If (~charmode)∧(1↑value)∊pollables
-          ⎕←'Set Poll indicator'
+          _LOG'Set Poll indicator'
           DDRB←DDRB b8OR(b2d'00000010')
-          MCP.WriteBytes MCP23017_IODIRB(DDRB)
+          _LOG MCP.WriteBytes MCP23017_IODIRB(DDRB)
       :EndIf
      
       r←0
@@ -332,10 +340,10 @@
     ⍝
     ∇ close;r;initdata
       :Implements Destructor
-      ⎕←'Adafruit Char LCD Plate at address ',⍕MCP.DeviceAddress,'will be closed.'
+      _LOG'Adafruit Char LCD Plate at address ',⍕MCP.DeviceAddress,'will be closed.'
      
         ⍝ Puts the MCP23017 back in Bank 0 + sequential write mode
-      MCP.WriteBytes MCP23017_IOCON_BANK1(0)
+      _LOG MCP.WriteBytes MCP23017_IOCON_BANK1(0)
      
         ⍝ Turn off LEDs on the way out
       PortA←b2d'11000000'
@@ -371,7 +379,7 @@
       initdata,←PortB          ⍝ OLATB
         ⍝ Write init data to MCP
         ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
-      MCP.WriteBytes 0(initdata)
+      _LOG MCP.WriteBytes 0(initdata)
      
         ⍝ Deconstruct MCP23017 Insatance
       MCP←⍬
@@ -398,10 +406,18 @@
 ⍝
 ⍝    def clear(self):
 ⍝        self.write(self.LCD_CLEARDISPLAY)
+    ∇ r←Clear
+      :Access Public
+      r←WriteData LCD_CLEARDISPLAY
+    ∇
 ⍝
 ⍝
 ⍝    def home(self):
 ⍝        self.write(self.LCD_RETURNHOME)
+    ∇ r←Home
+      :Access Public
+      r←WriteData LCD_RETURNHOME
+    ∇
 ⍝
 ⍝
 ⍝    row_offsets = ( 0x00, 0x40, 0x14, 0x54 )
@@ -529,7 +545,11 @@
 ⍝                self.write(line[0:self.numcols-3] + '...', True)
 ⍝            else:
 ⍝                self.write(line, True)
-⍝
+    ∇ r←Message(line text);address
+      :Access Public
+      address←LINE_ADDRESSES[line]
+      r←(WriteData address)(WriteChar text)
+    ∇
 ⍝
 ⍝
 ⍝    def backlight(self, color):

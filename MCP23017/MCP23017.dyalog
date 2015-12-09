@@ -9,6 +9,11 @@
     ⍝ Set environment
     ⎕IO←⎕ML←1
 
+    ⍝ ----------------------------------------------------------------------
+    ⍝ Debug
+    DEBUG ← 0            ⍝ Debug Flag Off:0 On:1
+    _LOG←{DEBUG:1 ⎕←⍵}   ⍝ Console log output if DEBUG
+
     ⍝ Member objects
     ⍝
     ⍝ IC2 bus device is attached to
@@ -70,7 +75,7 @@
     ⍝ Open I2C bus of this device
     ∇ r←initializeI2CBus
       r←I2CBus.OpenBus
-      ⎕←'MCP23017 at Bus:Address=',(1 0⍕I2CBus.getBusID),':',⍕DeviceAddress,'is now alive.'
+      _LOG'MCP23017 at Bus:Address=',(1 0⍕I2CBus.getBusID),':',⍕DeviceAddress,'is now alive.'
     ∇
     ⍝ Set default configuration
     ∇ r←defaultConfiguration
@@ -78,7 +83,7 @@
       r←Config16 65535   ⍝ 0xFFFF
       ⍝ All pullups of PortA and PortB are On
       r←Pullup16 65535   ⍝ 0xFFFF
-      ⎕←'MCP23017 Default configuration set (All Input, Pullup ON).'
+      _LOG'MCP23017 Default configuration set (All Input, Pullup ON).'
     ∇
 
     ⍝ Utility functions
@@ -313,7 +318,7 @@
     ⍝ Destructor
     ∇ close;r
       :Implements Destructor
-      ⎕←'MCP23017 at Bus:Address=',(1 0⍕I2CBus.getBusID),':',⍕DeviceAddress,'will be closed.'
+      _LOG'MCP23017 at Bus:Address=',(1 0⍕I2CBus.getBusID),':',⍕DeviceAddress,'will be closed.'
       r←I2CBus.CloseBus
       I2CBus←⍬
       r←0
