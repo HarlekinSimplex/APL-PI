@@ -9,110 +9,146 @@
 
     ⍝ ----------------------------------------------------------------------
     ⍝ Debug
+    ⍝
+
+    ⍝ Console logging
     DEBUG ← 0            ⍝ Debug Flag Off:0 On:1
-    _LOG←{DEBUG:1 ⎕←⍵}   ⍝ Console log output if DEBUG
+    _LOG←{DEBUG:1 ⎕←⍵}   ⍝ Console log output if DEBUG flag set TRUE
+
+    ⍝ Debug expression utility to circumvent object encapsulation
+    ⍝ (shall be commented out when not in use)
+    ⍝
+    ∇ r←Debug exp
+      :Access Public
+      r←⍎exp         ⍝ Evaluate given expression within actual object context
+    ∇
 
     ⍝ ----------------------------------------------------------------------
     ⍝ Tools
     ⍝
+
     ⍝ Hex/Boolean Tools
     ⍝ used
-    x2d    ←{⍺⊥(('0123456789',⎕A)⍳⍵)-1}             ⍝ Converts a ⍺ based string to a decimal
-    h2d    ←{16x2d⍵}                                ⍝ Converts a hex string to a decimal
-    b2d    ←{2x2d⍵}                                 ⍝ Converts a boolean string to a decimal
-    b8OR   ←{2⊥((8⍴2)⊤⍺)∨(8⍴2)⊤⍵}                   ⍝ Boolean OR  (8 bit)
-    b8AND  ←{2⊥((8⍴2)⊤⍺)∧(8⍴2)⊤⍵}                   ⍝ Boolean AND (8 bit)
-    b8NOT  ←{2⊥(~(8⍴2)⊤⍵)}                          ⍝ Boolean NOT (8 bit) 
-    b8LEFT ←{2⊥⍺⌽(8⍴2)⊤⍵}                           ⍝ Boolean Shift Left (8 bit)
-    b8RIGHT←{2⊥(-⍺)⌽(8⍴2)⊤⍵}                        ⍝ Boolean Shif Right (8 bit)
+    x2d    ←{⍺⊥(('0123456789',⎕A)⍳⍵)-1}              ⍝ Converts a ⍺ based string to a decimal
+    h2d    ←{16x2d⍵}                                 ⍝ Converts a hex string to a decimal
+    b2d    ←{2x2d⍵}                                  ⍝ Converts a boolean string to a decimal
+    b8OR   ←{2⊥((8⍴2)⊤⍺)∨(8⍴2)⊤⍵}                    ⍝ Boolean OR  (8 bit)
+    b8AND  ←{2⊥((8⍴2)⊤⍺)∧(8⍴2)⊤⍵}                    ⍝ Boolean AND (8 bit)
+    b8NOT  ←{2⊥(~(8⍴2)⊤⍵)}                           ⍝ Boolean NOT (8 bit) 
+    b8XOR  ←{(⍵ b8AND b8NOT ⍺) b8OR ⍺ b8AND b8NOT ⍵} ⍝ Boolean XOR (8 bit)
+    b8LEFT ←{2⊥⍺⌽(8⍴2)⊤⍵}                            ⍝ Boolean Shift Left (8 bit)
+    b8RIGHT←{2⊥(-⍺)⌽(8⍴2)⊤⍵}                         ⍝ Boolean Shif Right (8 bit)
 
     ⍝ not used yet
-    d2x    ←{('0123456789',⎕A)[1+(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵]} ⍝ Converts a decimal to a ⍺ based string
-    d2h    ←{16d2x⍵}                                ⍝ Converts a decimal to a hex string
-    d2b    ←{2d2x⍵}                                 ⍝ Converts a decimal to a boolean string
-    d2xA   ←{(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵}                      ⍝ Converts a decimal to a ⍺ based array
-    d2bA   ←{2d2xA⍵}                                ⍝ Converts a decimal to a boolean array
+⍝    d2x    ←{('0123456789',⎕A)[1+(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵]} ⍝ Converts a decimal to a ⍺ based string
+⍝    d2h    ←{16d2x⍵}                                ⍝ Converts a decimal to a hex string
+⍝    d2b    ←{2d2x⍵}                                 ⍝ Converts a decimal to a boolean string
+⍝    d2xA   ←{(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵}                      ⍝ Converts a decimal to a ⍺ based array
+⍝    d2bA   ←{2d2xA⍵}                                ⍝ Converts a decimal to a boolean array
+
+    ⍝ Cut utiliy
+    ⍝
+    ⍝ f← ⍺ Cut ⍵
+    ⍝ ⍺: Delimiter sequence  '::'
+    ⍝ ⍵: String to cut       'aaa::bbb::ccc'
+    ⍝ f: Array of strings    'aaa' 'bbb' 'ccc'
+    Cut←{⎕ML←3 ⋄ (~⍵∊⍺)⊂⍵}
 
     ⍝ ----------------------------------------------------------------------
-    ⍝ Constants
+    ⍝ Member Constants
     ⍝
+
     ⍝ Port expander registers
-    MCP23017_IOCON_BANK0    ← 10  ⍝ 0x0A IOCON when Bank 0 active
-    MCP23017_IOCON_BANK1    ← 21  ⍝ 0x15 IOCON when Bank 1 active
+    :Field Private Shared ReadOnly MCP23017_IOCON_BANK0    ← 10  ⍝ 0x0A IOCON when Bank 0 active
+    :Field Private Shared ReadOnly MCP23017_IOCON_BANK1    ← 21  ⍝ 0x15 IOCON when Bank 1 active
 
     ⍝ These are register addresses when in Bank 1 only:
-    MCP23017_GPIOA          ← 9   ⍝ 0x09
-    MCP23017_IODIRB         ← 16  ⍝ 0x10
-    MCP23017_GPIOB          ← 25  ⍝ 0x19
+    :Field Private Shared ReadOnly MCP23017_GPIOA          ← 9   ⍝ 0x09
+    :Field Private Shared ReadOnly MCP23017_IODIRB         ← 16  ⍝ 0x10
+    :Field Private Shared ReadOnly MCP23017_GPIOB          ← 25  ⍝ 0x19
 
     ⍝ Port expander button input pin definitions
-    SELECT                  ← 0
-    RIGHT                   ← 1
-    DOWN                    ← 2
-    UP                      ← 3
-    LEFT                    ← 4
+    :Field Private Shared ReadOnly SELECT                  ← 0
+    :Field Private Shared ReadOnly RIGHT                   ← 1
+    :Field Private Shared ReadOnly DOWN                    ← 2
+    :Field Private Shared ReadOnly UP                      ← 3
+    :Field Private Shared ReadOnly LEFT                    ← 4
 
     ⍝ LED colors
-    OFF                     ← 0   ⍝ 0x00
-    RED                     ← 1   ⍝ 0x01
-    GREEN                   ← 2   ⍝ 0x02
-    BLUE                    ← 4   ⍝ 0x04
-    YELLOW                  ← RED + GREEN
-    TEAL                    ← GREEN + BLUE
-    VIOLET                  ← RED + BLUE
-    WHITE                   ← RED + GREEN + BLUE
-    ON                      ← RED + GREEN + BLUE
+    :Field Private Shared ReadOnly OFF                     ← 0   ⍝ 0x00
+    :Field Private Shared ReadOnly RED                     ← 1   ⍝ 0x01
+    :Field Private Shared ReadOnly GREEN                   ← 2   ⍝ 0x02
+    :Field Private Shared ReadOnly BLUE                    ← 4   ⍝ 0x04
+    :Field Private Shared ReadOnly YELLOW                  ← RED + GREEN
+    :Field Private Shared ReadOnly TEAL                    ← GREEN + BLUE
+    :Field Private Shared ReadOnly VIOLET                  ← RED + BLUE
+    :Field Private Shared ReadOnly WHITE                   ← RED + GREEN + BLUE
+    :Field Private Shared ReadOnly ON                      ← RED + GREEN + BLUE
 
     ⍝ LCD Commands
-    LCD_CLEARDISPLAY        ← 1   ⍝ 0x01
-    LCD_RETURNHOME          ← 2   ⍝ 0x02
-    LCD_ENTRYMODESET        ← 4   ⍝ 0x04
-    LCD_DISPLAYCONTROL      ← 8   ⍝ 0x08
-    LCD_CURSORSHIFT         ← 16  ⍝ 0x10
-    LCD_FUNCTIONSET         ← 32  ⍝ 0x20
-    LCD_SETCGRAMADDR        ← 64  ⍝ 0x40
-    LCD_SETDDRAMADDR        ← 128 ⍝ 0x80
+    :Field Private Shared ReadOnly LCD_CLEARDISPLAY        ← 1   ⍝ 0x01
+    :Field Private Shared ReadOnly LCD_RETURNHOME          ← 2   ⍝ 0x02
+    :Field Private Shared ReadOnly LCD_ENTRYMODESET        ← 4   ⍝ 0x04
+    :Field Private Shared ReadOnly LCD_DISPLAYCONTROL      ← 8   ⍝ 0x08
+    :Field Private Shared ReadOnly LCD_CURSORSHIFT         ← 16  ⍝ 0x10
+    :Field Private Shared ReadOnly LCD_FUNCTIONSET         ← 32  ⍝ 0x20
+    :Field Private Shared ReadOnly LCD_SETCGRAMADDR        ← 64  ⍝ 0x40
+    :Field Private Shared ReadOnly LCD_SETDDRAMADDR        ← 128 ⍝ 0x80
 
     ⍝ Flags for display on/off control
-    LCD_DISPLAYON           ← 4   ⍝ 0x04
-    LCD_DISPLAYOFF          ← 0   ⍝ 0x00
-    LCD_CURSORON            ← 2   ⍝ 0x02
-    LCD_CURSOROFF           ← 0   ⍝ 0x00
-    LCD_BLINKON             ← 1   ⍝ 0x01
-    LCD_BLINKOFF            ← 0   ⍝ 0x00
+    :Field Private Shared ReadOnly LCD_DISPLAYON           ← 4   ⍝ 0x04
+    :Field Private Shared ReadOnly LCD_DISPLAYOFF          ← 0   ⍝ 0x00
+    :Field Private Shared ReadOnly LCD_CURSORON            ← 2   ⍝ 0x02
+    :Field Private Shared ReadOnly LCD_CURSOROFF           ← 0   ⍝ 0x00
+    :Field Private Shared ReadOnly LCD_BLINKON             ← 1   ⍝ 0x01
+    :Field Private Shared ReadOnly LCD_BLINKOFF            ← 0   ⍝ 0x00
 
     ⍝ Flags for display entry mode
-    LCD_ENTRYRIGHT          ← 0   ⍝ 0x00
-    LCD_ENTRYLEFT           ← 2   ⍝ 0x02
-    LCD_ENTRYSHIFTINCREMENT ← 1   ⍝ 0x01
-    LCD_ENTRYSHIFTDECREMENT ← 0   ⍝ 0x00
+    :Field Private Shared ReadOnly LCD_ENTRYRIGHT          ← 0   ⍝ 0x00
+    :Field Private Shared ReadOnly LCD_ENTRYLEFT           ← 2   ⍝ 0x02
+    :Field Private Shared ReadOnly LCD_ENTRYSHIFTINCREMENT ← 1   ⍝ 0x01
+    :Field Private Shared ReadOnly LCD_ENTRYSHIFTDECREMENT ← 0   ⍝ 0x00
 
     ⍝ Flags for display/cursor shift
-    LCD_DISPLAYMOVE         ← 8   ⍝ 0x08
-    LCD_CURSORMOVE          ← 0   ⍝ 0x00
-    LCD_MOVERIGHT           ← 4   ⍝ 0x04
-    LCD_MOVELEFT            ← 0   ⍝ 0x00
+    :Field Private Shared ReadOnly LCD_DISPLAYMOVE         ← 8   ⍝ 0x08
+    :Field Private Shared ReadOnly LCD_CURSORMOVE          ← 0   ⍝ 0x00
+    :Field Private Shared ReadOnly LCD_MOVERIGHT           ← 4   ⍝ 0x04
+    :Field Private Shared ReadOnly LCD_MOVELEFT            ← 0   ⍝ 0x00
 
-    ⍝ Construct some display commands
-    Displayshift            ← LCD_CURSORMOVE b8OR LCD_MOVERIGHT
-    Displaymode             ← LCD_ENTRYLEFT  b8OR LCD_ENTRYSHIFTDECREMENT
-    Displaycontrol          ← LCD_DISPLAYON  b8OR LCD_CURSOROFF b8OR LCD_BLINKOFF
+    ⍝ Truncation constants for message function truncate parameter
+    :Field Private Shared ReadOnly NO_TRUNCATE             ← 0
+    :Field Private Shared ReadOnly TRUNCATE                ← 1   ⍝ same as NO_TRUNCATE!!
+    :Field Private Shared ReadOnly TRUNCATE_ELLIPSIS       ← 2
 
-    ⍝ Truncation constants for message function truncate parameter.
-    NO_TRUNCATE             ← 0
-    TRUNCATE                ← 1
-    TRUNCATE_ELLIPSIS       ← 2
-
-    ⍝ Line addresses for up to 4 line displays.  Maps line number to DDRAM address for line.
-    LINE_ADDRESSES          ← (h2d'00')(h2d'C0')(h2d'94')(h2d'D4')
+    ⍝ Line addresses for up to 4 line displays.  Maps line number to DDRAM address for line
+    :Field Private Shared ReadOnly LINE_ADDRESSES          ← (h2d'00')(h2d'C0')(h2d'94')(h2d'D4')
+    ⍝ Row offsets to move curser
+    :Field Private Shared ReadOnly ROW_OFFSETS             ← (h2d'00')(h2d'40')(h2d'14')(h2d'54')
 
     ⍝ ----------------------------------------------------------------------
-    ⍝ Fields
+    ⍝ Member Objects
     ⍝
-    :Field Public MCP
-    :Field Public PortA
-    :Field Public PortB
-    :Field Public DDRB
+
+    :Field Public MCP             ⍝ MCP23017 instance bound to the actual LCD
+
+    ⍝ ----------------------------------------------------------------------
+    ⍝ Member Variables
+    ⍝
+
+    ⍝ Construct some display commands (state buffer)
+    :Field Private Displayshift   ← LCD_CURSORMOVE b8OR LCD_MOVERIGHT
+    :Field Private Displaymode    ← LCD_ENTRYLEFT  b8OR LCD_ENTRYSHIFTDECREMENT
+    :Field Private Displaycontrol ← LCD_DISPLAYON  b8OR LCD_CURSOROFF b8OR LCD_BLINKOFF
+
+    ⍝ Port state buffer
+    :Field Private PortA           ⍝ State buffer of Port A register
+    :Field Private PortB           ⍝ State buffer of Port B register
+    :Field Private DDRB            ⍝ State buffer of data direction register B
+
+    ⍝ Display properties
+    :Field Private CurrLine ← 0   ⍝ Current line that gets next char output
+    :Field Private NumLines ← 2   ⍝ Number of display lines of the attached display 
+    :Field Private NumCols  ← 16  ⍝ Number of display columns of attached display
 
     ⍝ ----------------------------------------------------------------------
     ⍝ Constructor
@@ -381,111 +417,104 @@
         ⍝ Blockwrite of configuration data to address 0 (IODIRA) onwards
       _LOG MCP.WriteBytes 0(initdata)
      
-        ⍝ Deconstruct MCP23017 Insatance
+        ⍝ Deconstruct MCP23017 instance
       MCP←⍬
       r←0
     ∇
 
     ⍝ ----------------------------------------------------------------------
-    ⍝ Debug utility (shall be commented out when not in use)
+    ⍝ Utility methods
     ⍝
-    ∇ r←Debug exp
+
+    ⍝ Set limits of attached display (Default set to cols:16 lines:2)
+    ∇ r←Begin(cols lines)
       :Access Public
-      r←⍎exp
+      CurrLine←0
+      NumLines←lines
+      NumCols←cols
+      r←Clear
     ∇
 
-⍝
-⍝    # ----------------------------------------------------------------------
-⍝    # Utility methods
-⍝
-⍝    def begin(self, cols, lines):
-⍝        self.currline = 0
-⍝        self.numlines = lines
-⍝        self.numcols = cols
-⍝        self.clear()
-⍝
-⍝    def clear(self):
-⍝        self.write(self.LCD_CLEARDISPLAY)
+    ⍝ Whipe display content
     ∇ r←Clear
       :Access Public
       r←WriteData LCD_CLEARDISPLAY
     ∇
-⍝
-⍝
-⍝    def home(self):
-⍝        self.write(self.LCD_RETURNHOME)
+
+    ⍝ Move cursor to home position (col:1 row:1)
     ∇ r←Home
       :Access Public
       r←WriteData LCD_RETURNHOME
     ∇
-⍝
-⍝
-⍝    row_offsets = ( 0x00, 0x40, 0x14, 0x54 )
-⍝    def setCursor(self, col, row):
-⍝        if row > self.numlines: row = self.numlines - 1
-⍝        elif row < 0:           row = 0
-⍝        self.write(self.LCD_SETDDRAMADDR | (col + self.row_offsets[row]))
-⍝
-⍝
+
+    ⍝ Set cursor to given position (guarded by values set by .Begin)
+    ∇ r←SetCursor(col row)
+      :Access Public
+     
+        ⍝ Guard given LCD limits
+      row←{⍵<1:1 ⋄ ⍵>NumLines:NumLines ⋄ ⍵}row
+      col←{⍵<1:1 ⋄ ⍵>NumLines:NumCols ⋄ ⍵}col
+     
+        ⍝ Set DDRAM address to new postion
+      r←WriteData LCD_SETDDRAMADDR b8OR(col+ROW_OFFSETS[row]-1)
+    ∇
+
     ⍝ Turn the display on (quickly)
     ∇ r←DisplayOn
       :Access Public
       Displaycontrol←Displaycontrol b8OR LCD_DISPLAYON
-      WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
+      r←WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
     ∇
 
     ⍝ Turn the display off (quickly)
     ∇ r←DisplayOff
       :Access Public
       Displaycontrol←Displaycontrol b8AND b8NOT LCD_DISPLAYON
-      WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
+      r←WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
     ∇
 
-⍝    def cursor(self):
-⍝        """ Underline cursor on """
-⍝        self.displaycontrol |= self.LCD_CURSORON
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
+    ⍝ Turn underline cursor on
     ∇ r←CursorOn
       :Access Public
       Displaycontrol←Displaycontrol b8OR LCD_CURSORON
-      WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
+      r←WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
     ∇
-⍝
-⍝    def noCursor(self):
-⍝        """ Underline cursor off """
-⍝        self.displaycontrol &= ~self.LCD_CURSORON
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
+
+    ⍝ Turn underline cursor off
     ∇ r←CursorOff
       :Access Public
       Displaycontrol←Displaycontrol b8AND b8NOT LCD_CURSORON
-      WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
+      r←WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
     ∇
-⍝
-⍝
-⍝    def ToggleCursor(self):
-⍝        """ Toggles the underline cursor On/Off """
-⍝        self.displaycontrol ^= self.LCD_CURSORON
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-⍝
-⍝
-⍝    def blink(self):
-⍝        """ Turn on the blinking cursor """
-⍝        self.displaycontrol |= self.LCD_BLINKON
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-⍝
-⍝
-⍝    def noBlink(self):
-⍝        """ Turn off the blinking cursor """
-⍝        self.displaycontrol &= ~self.LCD_BLINKON
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-⍝
-⍝
-⍝    def ToggleBlink(self):
-⍝        """ Toggles the blinking cursor """
-⍝        self.displaycontrol ^= self.LCD_BLINKON
-⍝        self.write(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-⍝
-⍝
+
+    ⍝ Toggles the underline cursor On/Off
+    ∇ r←ToggleCursor
+      :Access Public
+      Displaycontrol←Displaycontrol b8XOR LCD_CURSORON
+      r←WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
+    ∇
+
+    ⍝ Turn on the blinking cursor
+    ∇ r←BlinkOn
+      :Access Public
+      Displaycontrol←Displaycontrol b8OR LCD_BLINKON
+      r←WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
+    ∇
+
+    ⍝ Turn off the blinking cursor
+    ∇ r←BlinkOff
+      :Access Public
+      Displaycontrol←Displaycontrol b8AND b8NOT LCD_BLINKON
+      r←WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
+    ∇
+
+    ⍝ Toggles the blinking cursor On/Off
+    ∇ r←ToggleBlink
+      :Access Public
+      Displaycontrol←Displaycontrol b8XOR LCD_BLINKON
+      r←WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
+    ∇
+
 ⍝    def scrollDisplayLeft(self):
 ⍝        """ These commands scroll the display without changing the RAM """
 ⍝        self.displayshift = self.LCD_DISPLAYMOVE | self.LCD_MOVELEFT
@@ -526,41 +555,36 @@
 ⍝        self.write(self.LCD_SETCGRAMADDR | ((location & 7) << 3))
 ⍝        self.write(bitmap, True)
 ⍝        self.write(self.LCD_SETDDRAMADDR)
-⍝
-⍝
-⍝    def message(self, text, truncate=NO_TRUNCATE):
-⍝        """ Send string to LCD. Newline wraps to second line"""
-⍝        lines = str(text).split('\n')    # Split at newline(s)
-⍝        for i, line in enumerate(lines): # For each substring...
-⍝            address = self.LINE_ADDRESSES.get(i, None)
-⍝            if address is not None:      # If newline(s),
-⍝                self.write(address)      #  set DDRAM address to line
-⍝            # Handle appropriate truncation if requested.
-⍝            linelen = len(line)
-⍝            if truncate == self.TRUNCATE and linelen > self.numcols:
-⍝                # Hard truncation of line.
-⍝                self.write(line[0:self.numcols], True)
-⍝            elif truncate == self.TRUNCATE_ELLIPSIS and linelen > self.numcols:
-⍝                # Nicer truncation with ellipses.
-⍝                self.write(line[0:self.numcols-3] + '...', True)
-⍝            else:
-⍝                self.write(line, True)
-    ∇ r←Message(line text);address
+
+    ⍝ Send string to LCD. Newline (⎕UCS 13) wraps to next line
+    ∇ r←Message(text truncate);lines;address;linelen
       :Access Public
-      address←LINE_ADDRESSES[line]
-      r←(WriteData address)(WriteChar text)
+        ⍝ Cut string into an array of string using ⎕UCS 13 (NewLine) as delimiter
+      lines←(⎕UCS 13)Cut text
+     
+        ⍝ Handle truncate and send strings to display
+      :For i :In ⍳⍴lines
+            ⍝ Get DDRAN offset and set address for actual line
+          address←LINE_ADDRESSES[i]
+          r←WriteData address
+            ⍝ Get length of of actual line for truncate handling
+          linelen←⍴⊃lines[i]
+     
+            ⍝ Handle truncate
+          :If (truncate=TRUNCATE)∧(linelen>NumCols)
+                ⍝ Hard truncate of line
+              r,←WriteChar NumCols↑⊃lines[i]
+          :ElseIf (truncate=TRUNCATE_ELLIPSIS)∧(linelen>NumCols)
+                ⍝ Nicer truncate with ellipsis
+              r,←WriteChar((NumCols-3)↑⊃lines[i]),'...'
+          :Else
+                ⍝ Write line without truncation
+              r,←WriteChar⊃lines[i]
+          :EndIf
+      :EndFor
     ∇
-⍝
-⍝
-⍝    def backlight(self, color):
-⍝        c          = ~color
-⍝        self.porta = (self.porta & 0b00111111) | ((c & 0b011) << 6)
-⍝        self.portb = (self.portb & 0b11111110) | ((c & 0b100) >> 2)
-⍝        # Has to be done as two writes because sequential operation is off.
-⍝        self.i2c.bus.write_byte_data(
-⍝          self.i2c.address, self.MCP23017_GPIOA, self.porta)
-⍝        self.i2c.bus.write_byte_data(
-⍝          self.i2c.address, self.MCP23017_GPIOB, self.portb)
+
+⍝  Set Backlight color 1:Red 2:Green 4:Blue (Add values to mix colors)
     ∇ r←Backlight color;c;funret1;funval1;funerr1;funret2;funval2;funerr2
       :Access Public
       c←b8NOT color
@@ -575,8 +599,7 @@
       r←(funret1 funval1 funerr1)(funret2 funval2 funerr2)
     ∇
 
-⍝
-⍝
+
 ⍝    # Read state of single button
 ⍝    def buttonPressed(self, b):
 ⍝        return (self.i2c.readU8(self.MCP23017_GPIOA) >> b) & 1
