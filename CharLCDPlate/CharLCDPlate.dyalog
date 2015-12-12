@@ -29,22 +29,22 @@
 
     ⍝ Hex/Boolean Tools
     ⍝ used
-    x2d    ←{⍺⊥(('0123456789',⎕A)⍳⍵)-1}              ⍝ Converts a ⍺ based string to a decimal
-    h2d    ←{16x2d⍵}                                 ⍝ Converts a hex string to a decimal
-    b2d    ←{2x2d⍵}                                  ⍝ Converts a boolean string to a decimal
-    b8OR   ←{2⊥((8⍴2)⊤⍺)∨(8⍴2)⊤⍵}                    ⍝ Boolean OR  (8 bit)
-    b8AND  ←{2⊥((8⍴2)⊤⍺)∧(8⍴2)⊤⍵}                    ⍝ Boolean AND (8 bit)
-    b8NOT  ←{2⊥(~(8⍴2)⊤⍵)}                           ⍝ Boolean NOT (8 bit) 
-    b8XOR  ←{(⍵ b8AND b8NOT ⍺) b8OR ⍺ b8AND b8NOT ⍵} ⍝ Boolean XOR (8 bit)
-    b8LEFT ←{2⊥⍺⌽(8⍴2)⊤⍵}                            ⍝ Boolean Shift Left (8 bit)
-    b8RIGHT←{2⊥(-⍺)⌽(8⍴2)⊤⍵}                         ⍝ Boolean Shif Right (8 bit)
+    x2d   ←{⍺⊥(('0123456789',⎕A)⍳⍵)-1}              ⍝ Converts a ⍺ based string to a decimal
+    h2d   ←{16x2d⍵}                                 ⍝ Converts a hex string to a decimal
+    b2d   ←{2x2d⍵}                                  ⍝ Converts a boolean string to a decimal
+    b8OR  ←{2⊥((8⍴2)⊤⍺)∨(8⍴2)⊤⍵}                    ⍝ Boolean OR  (8 bit)
+    b8AND ←{2⊥((8⍴2)⊤⍺)∧(8⍴2)⊤⍵}                    ⍝ Boolean AND (8 bit)
+    b8NOT ←{2⊥(~(8⍴2)⊤⍵)}                           ⍝ Boolean NOT (8 bit) 
+    b8XOR ←{(⍵ b8AND b8NOT ⍺) b8OR ⍺ b8AND b8NOT ⍵} ⍝ Boolean XOR (8 bit)
+    b8LSL ←{2⊥⍺⌽(8⍴2)⊤⍵}                            ⍝ Boolean Shift Left (8 bit)
+    b8LSR ←{2⊥(-⍺)⌽(8⍴2)⊤⍵}                         ⍝ Boolean Shif Right (8 bit)
 
     ⍝ not used yet
-⍝    d2x    ←{('0123456789',⎕A)[1+(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵]} ⍝ Converts a decimal to a ⍺ based string
-⍝    d2h    ←{16d2x⍵}                                ⍝ Converts a decimal to a hex string
-⍝    d2b    ←{2d2x⍵}                                 ⍝ Converts a decimal to a boolean string
-⍝    d2xA   ←{(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵}                      ⍝ Converts a decimal to a ⍺ based array
-⍝    d2bA   ←{2d2xA⍵}                                ⍝ Converts a decimal to a boolean array
+⍝    d2x  ←{('0123456789',⎕A)[1+(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵]}  ⍝ Converts a decimal to a ⍺ based string
+⍝    d2h  ←{16d2x⍵}                                 ⍝ Converts a decimal to a hex string
+⍝    d2b  ←{2d2x⍵}                                  ⍝ Converts a decimal to a boolean string
+⍝    d2xA ←{(((⌊⍺⍟⍵)+1)⍴⍺)⊤⍵}                       ⍝ Converts a decimal to a ⍺ based array
+⍝    d2bA ←{2d2xA⍵}                                 ⍝ Converts a decimal to a boolean array
 
     ⍝ Cut utiliy
     ⍝
@@ -185,8 +185,8 @@
         ⍝ Post backlight value to output register cache
         ⍝ Color Bit 0 and 1 are connected to PortA Bit 6 and 7
         ⍝ Color Bit 2 is connected to PortB Bit 0
-      PortA←(PortA b8AND(b2d'00111111'))b8OR(2 b8RIGHT(c b8AND(b2d'0000011')))
-      PortB←(PortB b8AND(b2d'11111110'))b8OR(2 b8RIGHT(c b8AND(b2d'0000100')))
+      PortA←(PortA b8AND(b2d'00111111'))b8OR(2 b8LSR(c b8AND(b2d'0000011')))
+      PortB←(PortB b8AND(b2d'11111110'))b8OR(2 b8LSR(c b8AND(b2d'0000100')))
      
         ⍝ Set MCP23017 IOCON register to Bank 0 with sequential operation.
         ⍝ If chip is already set for Bank 0, this will just write to OLATB
@@ -264,7 +264,7 @@
     ⍝ Can concatenate the output of multiple calls (up to 8) for more
     ⍝ efficient batch write.
     ∇ r←out4(bitmask value);lo;hi
-      hi←bitmask b8OR flip[1+(h2d'0F')b8AND 4 b8RIGHT value]
+      hi←bitmask b8OR flip[1+(h2d'0F')b8AND 4 b8LSR value]
       lo←bitmask b8OR flip[1+(h2d'0F')b8AND value]
       r←(hi b8OR b2d'00100000')hi(lo b8OR b2d'00100000')lo
     ∇
@@ -309,7 +309,7 @@
               _LOG MCP.WriteBytes MCP23017_GPIOB(hi)
                 ⍝ First nybble contains busy state
               funret bits funerr←MCP.ReadBytes MCP23017_GPIOB(0)
-                ⍝ Strobe low, high, low.  Second nybble (A3) is ignored.
+                ⍝ Strobe low, high, low. Second nybble (A3) is ignored.
               _LOG MCP.WriteBytes MCP23017_GPIOB(lo hi lo)
               PortB←lo
             ⍝ D7=0,not busy
@@ -515,46 +515,59 @@
       r←WriteData Displaycontrol b8OR LCD_DISPLAYCONTROL
     ∇
 
-⍝    def scrollDisplayLeft(self):
-⍝        """ These commands scroll the display without changing the RAM """
-⍝        self.displayshift = self.LCD_DISPLAYMOVE | self.LCD_MOVELEFT
-⍝        self.write(self.LCD_CURSORSHIFT | self.displayshift)
-⍝
-⍝
-⍝    def scrollDisplayRight(self):
-⍝        """ These commands scroll the display without changing the RAM """
-⍝        self.displayshift = self.LCD_DISPLAYMOVE | self.LCD_MOVERIGHT
-⍝        self.write(self.LCD_CURSORSHIFT | self.displayshift)
-⍝
-⍝
-⍝    def leftToRight(self):
-⍝        """ This is for text that flows left to right """
-⍝        self.displaymode |= self.LCD_ENTRYLEFT
-⍝        self.write(self.LCD_ENTRYMODESET | self.displaymode)
-⍝
-⍝
-⍝    def rightToLeft(self):
-⍝        """ This is for text that flows right to left """
-⍝        self.displaymode &= ~self.LCD_ENTRYLEFT
-⍝        self.write(self.LCD_ENTRYMODESET | self.displaymode)
-⍝
-⍝
-⍝    def autoscroll(self):
-⍝        """ This will 'right justify' text from the cursor """
-⍝        self.displaymode |= self.LCD_ENTRYSHIFTINCREMENT
-⍝        self.write(self.LCD_ENTRYMODESET | self.displaymode)
-⍝
-⍝
-⍝    def noAutoscroll(self):
-⍝        """ This will 'left justify' text from the cursor """
-⍝        self.displaymode &= ~self.LCD_ENTRYSHIFTINCREMENT
-⍝        self.write(self.LCD_ENTRYMODESET | self.displaymode)
-⍝
-⍝
+    ⍝ These commands scroll the display without changing the RAM
+    ⍝ Scroll to the left
+    ∇ r←ScrollLeft
+      :Access Public
+      Displayshift←LCD_DISPLAYMOVE b8OR LCD_MOVELEFT
+      r←WriteData Displayshift b8OR LCD_CURSORSHIFT
+    ∇
+    ⍝ Scroll to the right
+    ∇ r←ScrollRight
+      :Access Public
+      Displayshift←LCD_DISPLAYMOVE b8OR LCD_MOVERIGHT
+      r←WriteData Displayshift b8OR LCD_CURSORSHIFT
+    ∇
+
+    ⍝ This is for text that flows left to right
+    ∇ r←LeftToRight
+      :Access Public
+      Displaymode←Displaymode b8OR LCD_ENTRYLEFT
+      r←WriteData Displaymode b8OR LCD_ENTRYMODESET
+    ∇
+
+    ⍝ This is for text that flows right to left
+    ∇ r←RightToLeft
+      :Access Public
+      Displaymode←Displaymode b8AND b8NOT LCD_ENTRYLEFT
+      r←WriteData Displaymode b8OR LCD_ENTRYMODESET
+    ∇
+
+    ⍝ This will 'right justify' text from the cursor
+    ∇ r←AutoscrollOn
+      :Access Public
+      Displaymode←Displaymode b8OR LCD_ENTRYSHIFTINCREMENT
+      r←WriteData Displaymode b8OR LCD_ENTRYMODESET
+    ∇
+
+    ⍝ This will 'right justify' text from the cursor
+    ∇ r←AutoscrollOff
+      :Access Public
+      Displaymode←Displaymode b8AND b8NOT LCD_ENTRYSHIFTINCREMENT
+      r←WriteData Displaymode b8OR LCD_ENTRYMODESET
+    ∇
+
 ⍝    def createChar(self, location, bitmap):
 ⍝        self.write(self.LCD_SETCGRAMADDR | ((location & 7) << 3))
 ⍝        self.write(bitmap, True)
 ⍝        self.write(self.LCD_SETDDRAMADDR)
+    ⍝ Create custom char from bitmap (not tested yet)
+    ∇ r←CreateChar(location bitmap)
+      :Access Public
+      r←WriteData LCD_SETCGRAMADDR b8OR 3 b8LSL location b8AND 7
+      r,←WriteData bitmap
+      r,←WriteData LCD_SETDDRAMADDR
+    ∇
 
     ⍝ Send string to LCD. Newline (⎕UCS 13) wraps to next line
     ∇ r←Message(text truncate);lines;address;linelen
@@ -591,68 +604,82 @@
         ⍝ Post backlight value to output register cache
         ⍝ Color Bit 0 and 1 are connected to PortA Bit 6 and 7
         ⍝ Color Bit 2 is connected to PortB Bit 0
-      PortA←(PortA b8AND(b2d'00111111'))b8OR(2 b8RIGHT(c b8AND(b2d'0000011')))
-      PortB←(PortB b8AND(b2d'11111110'))b8OR(2 b8RIGHT(c b8AND(b2d'0000100')))
+      PortA←(PortA b8AND(b2d'00111111'))b8OR(2 b8LSR(c b8AND(b2d'0000011')))
+      PortB←(PortB b8AND(b2d'11111110'))b8OR(2 b8LSR(c b8AND(b2d'0000100')))
      
       funret1 funval1 funerr1←MCP.WriteBytes MCP23017_GPIOA(2⊥PortA)
       funret2 funval2 funerr2←MCP.WriteBytes MCP23017_GPIOB(2⊥PortB)
       r←(funret1 funval1 funerr1)(funret2 funval2 funerr2)
     ∇
 
+    ⍝ Read state of single button
+    ∇ r←ButtonPressed b;funret;bits;funerr
+      :Access Public
+        ⍝ Read button states
+      funret bits funerr←MCP.ReadBytes MCP23017_GPIOA(0)
+        ⍝ Select and mask button state
+      r←1 b8AND b b8LSR bits
+    ∇
 
-⍝    # Read state of single button
-⍝    def buttonPressed(self, b):
-⍝        return (self.i2c.readU8(self.MCP23017_GPIOA) >> b) & 1
-⍝
-⍝
-⍝    # Read and return bitmask of combined button state
-⍝    def buttons(self):
-⍝        return self.i2c.readU8(self.MCP23017_GPIOA) & 0b11111
-⍝
-⍝
-⍝    # ----------------------------------------------------------------------
-⍝    # Test code
-⍝
-⍝if __name__ == '__main__':
-⍝
-⍝    lcd = Adafruit_CharLCDPlate()
-⍝    lcd.begin(16, 2)
-⍝    lcd.clear()
-⍝    lcd.message("Adafruit RGB LCD\nPlate w/Keypad!")
-⍝    sleep(1)
-⍝
-⍝    col = (('Red' , lcd.RED) , ('Yellow', lcd.YELLOW), ('Green' , lcd.GREEN),
-⍝           ('Teal', lcd.TEAL), ('Blue'  , lcd.BLUE)  , ('Violet', lcd.VIOLET),
-⍝           ('Off' , lcd.OFF) , ('On'    , lcd.ON))
-⍝
-⍝    print "Cycle thru backlight colors"
-⍝    for c in col:
-⍝       print c[0]
-⍝       lcd.clear()
-⍝       lcd.message(c[0])
-⍝       lcd.backlight(c[1])
-⍝       sleep(0.5)
-⍝
-⍝    btn = ((lcd.SELECT, 'Select', lcd.ON),
-⍝           (lcd.LEFT  , 'Left'  , lcd.RED),
-⍝           (lcd.UP    , 'Up'    , lcd.BLUE),
-⍝           (lcd.DOWN  , 'Down'  , lcd.GREEN),
-⍝           (lcd.RIGHT , 'Right' , lcd.VIOLET))
-⍝    
-⍝    print "Try buttons on plate"
-⍝    lcd.clear()
-⍝    lcd.message("Try buttons")
-⍝    prev = -1
-⍝    while True:
-⍝        for b in btn:
-⍝            if lcd.buttonPressed(b[0]):
-⍝                if b is not prev:
-⍝                    print b[1]
-⍝                    lcd.clear()
-⍝                    lcd.message(b[1])
-⍝                    lcd.backlight(b[2])
-⍝                    prev = b
-⍝                break
+    ⍝ Read and return bitmask of combined button state
+    ∇ r←Buttons;funret;bits;funerr
+      :Access Public
+        ⍝ Read button states
+      funret bits funerr←MCP.ReadBytes MCP23017_GPIOA(0)
+        ⍝ Select and mask state of all buttons
+      r←(b2d'00011111')b8AND bits
+    ∇
+
+    ⍝ ----------------------------------------------------------------------
+    ⍝ Test code
+    ⍝
+    ∇ Test;lcd;col;btn;prev
+      :Access Public Shared
+      lcd←⎕NEW ##.CharLCDPlate
+      {}lcd.Begin 16 2
+      {}lcd.Clear
+      {}lcd.Message('Adafruit RGB LCD',(⎕UCS 13),'Plate w/Keypad!')0
+      ⎕DL 1
+     
+      col←('Red'RED)('Yellow'YELLOW)('Green'GREEN)
+      col,←('Teal'TEAL)('Blue'BLUE)('Violet'VIOLET)
+      col,←('Off'OFF)('On'ON)
+     
+      ⎕←'Cycle thru backlight colors'
+      :For c :In col
+          ⎕←c[1]
+          {}lcd.Clear
+          {}lcd.Message(⊃c[1])0
+          {}lcd.Backlight c[2]
+          ⎕DL 0.5
+      :EndFor
+     
+      btn←(⊂SELECT'Select'ON)
+      btn,←(⊂LEFT'Left'RED)
+      btn,←(⊂UP'Up'BLUE)
+      btn,←(⊂DOWN'Down'GREEN)
+      btn,←(⊂RIGHT'Right'VIOLET)
+     
+      ⎕←'Try buttons on plate'
+      {}lcd.Clear
+      {}lcd.Message'Try buttons' 0
+     
+      prev←¯1
+      :While prev≠SELECT
+          :For b :In btn
+              :If lcd.ButtonPressed b[1]
+                  :If b[1]≠prev
+                      ⎕←b[2]
+                      {}lcd.Clear
+                      {}lcd.Message(⊃b[2])0
+                      {}lcd.Backlight b[3]
+                      prev←b[1]
+                  :EndIf
+              :EndIf
+          :EndFor
+      :EndWhile
+      ⎕←'Select detected - Exit'
+    ∇
 
 :EndClass
 
